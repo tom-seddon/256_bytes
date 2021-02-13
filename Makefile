@@ -6,7 +6,7 @@ else
 TASS?=64tass
 endif
 
-PYTHON?=python
+PYTHON?=python3.8
 
 TMP:=build
 TASSCMD:=$(TASS) --m65c02 --cbm-prg -Wall -C --line-numbers
@@ -31,4 +31,9 @@ _assemble:
 
 .PHONY:_ssds
 _ssds:
-	echo TODO
+	$(PYTHON) $(BEEB_BIN)/ssd_create.py -o "$(TMP)/wobble_colours.ssd" -b "*/@.1" "$(DEST)/@.1"
+	sha1sum "$(TMP)/wobble_colours.ssd"
+
+.PHONY:clean
+clean:
+	$(SHELLCMD) rm-tree "$(TMP)"
