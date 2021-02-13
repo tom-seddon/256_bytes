@@ -13,27 +13,19 @@ tmp:
 
                 .section code
                 
-                ldx #text.init-text
+                ldx #text.init-1-text
                 jsr print
 
+                ldy #31
 init_loop:
-                ldx lines_counter
-                lda xs,x
-
-                asl a
-                rol tmp
-                asl a
-                rol tmp
-                asl a
-
+                lda xs,y
+                ;and #%11111000 ;no need! It's the pixel fraction!
                 sta text.x+1
-                
-                lda tmp
-                rol a
-                and #7
+
+                and #%00000111
                 sta text.x+0
 
-                ldx #text.message-text
+                ldx #text.message-1-text
                 jsr print
 
                 clc
@@ -43,22 +35,19 @@ init_loop:
                 bcc +
                 inc text.y+0
 +
-                dec lines_counter
+                dey
                 bpl init_loop
 
                 sei
 main_loop:
-                clc
-                
                 ldx #13
-                stx $fe00
-                lda $fe01
+                jsr read_crtc
+                clc
                 adc #80
                 sta $fe01
 
                 dex
-                stx $fe00
-                lda $fe01
+                jsr read_crtc
                 adc #0
                 cmp #$10
                 bcc +
@@ -78,7 +67,6 @@ x_loop:
 y_loop:
                 lda system_via.t1c_h
                 ora #$f0
-                ;and #$0f
                 sta video_ula_palette
 
                 dey
@@ -89,32 +77,34 @@ y_loop:
 
                 beq main_loop
                 
-                rts
-
 print:
                 lda text,x
                 jsr oswrch
                 dex
                 bpl print
+read_crtc:
+                stx $fe00
+                lda $fe01
                 rts
 
-lines_counter:
-                .byte 31
-
 message_text="BITSHIFTERS"
-init_text=[22,2,5,18,0,15]
                 
 xs:
-                .for i:=0, i<32, i+=1
-                .byte 80-int(len(message_text)/2.0*8+sin(i/31.0*2.0*pi)*8)
+                .for i:=0,i<32,i+=1
+value:=80-int(len(message_text)/2.0*8+sin(i/31.0*2.0*pi)*8)
+                ; Mode 2 scale - 8 graphics units per pixel
+                .byte (value&%00011111)<<3|(value&%11100000)>>5
                 .next
 
 text: .block
                 .text message_text[::-1]
 y:
                 .byte 0         ;MSB
-                .byte 31         ;LSB
+                .byte 31        ;LSB
 x:
+                ; Gets printed when the init text is printed! - so
+                ; initial value must put the output somewhere off
+                ; screen.
                 .byte >1280     ;MSB
                 .byte <1280     ;LSB
                 .text 4,25      ;PLOT4 = MOVE
@@ -126,3 +116,4 @@ init:
                 .bend
                 
                 .send code
+                
