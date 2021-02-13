@@ -1,0 +1,14 @@
+                .include "submodules/beeb/include/beeb.s65"
+                
+*=$70
+                .dsection zp
+*=$1900
+                .dsection code
+                
+                .section zp
+                .send zp
+
+                .section code
+                lda #65
+                jmp oswrch
+                .send code
