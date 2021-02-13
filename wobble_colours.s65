@@ -7,6 +7,8 @@
                 .dsection code
                 
                 .section zp
+tmp:
+                .fill 1
                 .send zp
 
                 .section code
@@ -18,15 +20,17 @@
 init_loop:
                 ldx lines_counter
                 lda xs,x
+
+                asl a
+                rol tmp
+                asl a
+                rol tmp
+                asl a
+
                 sta text.message.x+0
                 
-                asl text.message.x+0
+                lda tmp
                 rol a
-                asl text.message.x+0
-                rol a
-                asl text.message.x+0
-                rol a
-
                 and #7
                 sta text.message.x+1
 
