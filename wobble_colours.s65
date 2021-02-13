@@ -28,15 +28,10 @@ init_loop:
                 ldx #text.message-1-text
                 jsr print
 
-                clc
-                lda text.y+1
-                adc #32
-                sta text.y+1
-                bcc +
-                inc text.y+0
-+
                 dey
                 bpl init_loop
+
+                jsr osrdch
 
                 sei
 main_loop:
@@ -66,7 +61,7 @@ x_loop:
                 ldy #128
 y_loop:
                 lda system_via.t1c_h
-                ora #$f0
+                ora #$70
                 sta video_ula_palette
 
                 dey
@@ -88,6 +83,8 @@ read_crtc:
                 rts
 
 message_text="BITSHIFTERS"
+initial_x=1280
+initial_y=1023
                 
 xs:
                 .for i:=0,i<32,i+=1
@@ -99,18 +96,19 @@ value:=80-int(len(message_text)/2.0*8+sin(i/31.0*2.0*pi)*8)
 text: .block
                 .text message_text[::-1]
 y:
-                .byte 0         ;MSB
-                .byte 31        ;LSB
+                .byte >initial_y
+                .byte <initial_y
 x:
                 ; Gets printed when the init text is printed! - so
                 ; initial value must put the output somewhere off
                 ; screen.
-                .byte >1280     ;MSB
-                .byte <1280     ;LSB
+                .byte >initial_x
+                .byte <initial_x
+                
                 .text 4,25      ;PLOT4 = MOVE
+                .text 5,11,4
 message:
-                .text 15,0,18   ;GCOL 0,15
-                .text 5
+                ; .text 7,0,18   ;GCOL 0,15
                 .text 2,22      ;MODE 2
 init:
                 .bend
