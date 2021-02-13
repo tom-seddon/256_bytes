@@ -1,7 +1,7 @@
 # -*- mode:makefile-gmake; -*-
 
 ifeq ($(OS),Windows_NT)
-TASS?=bin\64tass.exe
+TASS?=64tass.exe
 else
 TASS?=64tass
 endif
