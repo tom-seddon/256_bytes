@@ -13,6 +13,7 @@ TASSCMD:=$(TASS) --m65c02 --cbm-prg -Wall -C --line-numbers
 BEEB_BIN:=submodules/beeb/bin
 SHELLCMD:=$(PYTHON) submodules/shellcmd.py/shellcmd.py
 DEST:=beeb/1
+SSD:=ssd
 
 ##########################################################################
 ##########################################################################
@@ -37,3 +38,8 @@ _ssds:
 .PHONY:clean
 clean:
 	$(SHELLCMD) rm-tree "$(TMP)"
+
+.PHONY:dist
+dist:
+	$(SHELLCMD) mkdir "$(SSD)"
+	$(SHELLCMD) copy-file "$(TMP)/wobble_colours.ssd" "$(SSD)/"
