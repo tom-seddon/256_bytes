@@ -12,6 +12,9 @@ tmp:
                 .send zp
 
                 .section code
+
+                lda #1
+                sta $291
                 
                 ldx #text.init-1-text
                 jsr print
@@ -30,8 +33,6 @@ init_loop:
 
                 dey
                 bpl init_loop
-
-                jsr osrdch
 
                 sei
 main_loop:
