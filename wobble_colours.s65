@@ -14,7 +14,6 @@ tmp:
                 .section code
                 
                 ldx #text.init-text
-                ldy #text.init.end-text.init
                 jsr print
 
 init_loop:
@@ -27,23 +26,22 @@ init_loop:
                 rol tmp
                 asl a
 
-                sta text.message.x+0
+                sta text.x+1
                 
                 lda tmp
                 rol a
                 and #7
-                sta text.message.x+1
+                sta text.x+0
 
                 ldx #text.message-text
-                ldy #text.message.end-text.message
                 jsr print
 
                 clc
-                lda text.message.y+0
+                lda text.y+1
                 adc #32
-                sta text.message.y+0
+                sta text.y+1
                 bcc +
-                inc text.message.y+1
+                inc text.y+0
 +
                 dec lines_counter
                 bpl init_loop
@@ -96,39 +94,35 @@ y_loop:
 print:
                 lda text,x
                 jsr oswrch
-                inx
-                dey
-                bne print
+                dex
+                bpl print
                 rts
 
 lines_counter:
                 .byte 31
 
-message_len=text.message.text_end-text.message.text
+message_text="BITSHIFTERS"
+init_text=[22,2,5,18,0,15]
                 
 xs:
                 .for i:=0, i<32, i+=1
-                .byte 80-message_len/2*8+int(sin(i/31.0*2.0*pi)*4)
+                .byte 80-int(len(message_text)/2.0*8+sin(i/31.0*2.0*pi)*8)
                 .next
-                
+
 text: .block
-init: .block
-                .text 22,2
-                .text 5
-                .text 18,0,15   ;CGOL 0,15
-end: .bend
-
-message: .block
-                .text 25,4      ;PLOT4 = MOVE
-x:
-                .word 0
+                .text message_text[::-1]
 y:
-                .word 31
-text:
-                .text "BITSHIFTERS"
-text_end:
-end: .bend                
-
+                .byte 0         ;MSB
+                .byte 31         ;LSB
+x:
+                .byte >1280     ;MSB
+                .byte <1280     ;LSB
+                .text 4,25      ;PLOT4 = MOVE
+message:
+                .text 15,0,18   ;GCOL 0,15
+                .text 5
+                .text 2,22      ;MODE 2
+init:
                 .bend
                 
                 .send code
