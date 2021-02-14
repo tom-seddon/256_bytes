@@ -16,8 +16,9 @@ tmp:
                 ldx #text.init-1-text
                 jsr print
 
-                ldy #%11110000  ;cursor off, display off
-                jsr write_crtc_r8
+                ldx #$08
+                ldy #$f0  ;cursor off, display off
+                jsr read_write_crtc
 
                 ldy #32
 init_loop:
@@ -36,18 +37,19 @@ init_loop:
 
                 ; this puts the cursor back on. But... VDU5! So the
                 ; cursor is hidden anyway.
-                jsr write_crtc_r8
+                ldx #8
+                jsr read_write_crtc
 
                 sei
 main_loop:
                 ldx #13
-                jsr read_crtc
+                jsr read_write_crtc
                 clc
                 adc #80
                 sta $fe01
 
                 dex
-                jsr read_crtc
+                jsr read_write_crtc
                 adc #0
                 cmp #$10
                 bcc +
@@ -82,13 +84,9 @@ print:
                 jsr oswrch
                 dex
                 bpl print
-read_crtc:
+read_write_crtc:
                 stx $fe00
                 lda $fe01
-                rts
-write_crtc_r8:
-                ldx #$08
-                stx $fe00
                 sty $fe01
                 rts
 
