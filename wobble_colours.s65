@@ -5,14 +5,17 @@
                 
 *=$1900
                 .dsection code
+                .cerror *>$1a00,"overflow"
+                ;.fill $1a00-*,0
                 
                 .section zp
-tmp:
+counter:
                 .fill 1
                 .send zp
 
                 .section code
 
+start:
                 ldx #text.init-1-text
                 jsr print
 
@@ -35,6 +38,8 @@ init_loop:
                 dey
                 bne init_loop
 
+                sty counter
+
                 ; this puts the cursor back on. But... VDU5! So the
                 ; cursor is hidden anyway.
                 ldx #8
@@ -56,6 +61,39 @@ main_loop:
                 lda #$06
 +
                 sta $fe01
+
+                inc counter
+
+                lda counter
+                and #$0f
+                ora #%11110000  ;noise attenuation
+                jsr sn_write
+
+                lda counter
+                clc
+                adc #8
+                and #$0f
+                ora #%11010000  ;tone 3 attenuation
+                jsr sn_write
+
+                lda #%11001111  ;tone 3 freq
+                jsr sn_write
+
+                lda counter
+                lsr a
+                pha
+                lsr a
+                lsr a
+                lsr a
+                and #7
+                tax
+                lda music,x
+                jsr sn_write
+
+                pla
+                and #3
+                ora #%11100100  ;white noise
+                jsr sn_write
 
                 lda #2
 -
@@ -90,6 +128,27 @@ read_write_crtc:
                 sty $fe01
                 rts
 
+sn_write:
+                ldx #$ff
+                stx system_via.ddra
+                sta system_via.ora_no_handshake
+                inx
+                stx system_via.orb
+                lda system_via.irb
+                ora #$08
+                sta system_via.orb
+                rts
+
+music:
+                .byte 22        ;F
+                .byte 25        ;Eb
+                .byte 27        ;D
+                .byte 25        ;Eb
+                .byte 27        ;D
+                .byte 25        ;Eb
+                .byte 27        ;D
+                .byte 30        ;C
+                
 message_text="BITSHIFTERS"
 initial_x=1280
 initial_y=1023
@@ -119,6 +178,6 @@ message:
                 .text 2,22      ;MODE 2
 init:
                 .bend
-                
+
                 .send code
                 
