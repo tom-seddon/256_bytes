@@ -13,15 +13,15 @@ tmp:
 
                 .section code
 
-                lda #1
-                sta $291
-                
                 ldx #text.init-1-text
                 jsr print
 
-                ldy #31
+                ldy #%11110000  ;cursor off, display off
+                jsr write_crtc_r8
+
+                ldy #32
 init_loop:
-                lda xs,y
+                lda xs-1,y
                 ;and #%11111000 ;no need! It's the pixel fraction!
                 sta text.x+1
 
@@ -32,7 +32,11 @@ init_loop:
                 jsr print
 
                 dey
-                bpl init_loop
+                bne init_loop
+
+                ; this puts the cursor back on. But... VDU5! So the
+                ; cursor is hidden anyway.
+                jsr write_crtc_r8
 
                 sei
 main_loop:
@@ -82,6 +86,11 @@ read_crtc:
                 stx $fe00
                 lda $fe01
                 rts
+write_crtc_r8:
+                ldx #$08
+                stx $fe00
+                sty $fe01
+                rts
 
 message_text="BITSHIFTERS"
 initial_x=1280
@@ -109,7 +118,6 @@ x:
                 .text 4,25      ;PLOT4 = MOVE
                 .text 5,11,4
 message:
-                ; .text 7,0,18   ;GCOL 0,15
                 .text 2,22      ;MODE 2
 init:
                 .bend
