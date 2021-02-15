@@ -9,8 +9,6 @@
                 ;.fill $1a00-*,0
                 
                 .section zp
-counter:
-                .fill 1
                 .send zp
 
                 .section code
@@ -29,16 +27,17 @@ start:
                 jsr init
                 jsr init
 
-                sty counter
+                sei
+                txs
 
                 ; this puts the cursor back on. But... VDU5! So the
                 ; cursor is hidden anyway.
                 ldx #8
                 jsr read_write_crtc
 
-                sei
 main_loop:
-                lda counter
+                tsx
+                txa
                 and #$0f
                 pha             ;save counter&15
                 ora #%11110000  ;noise attenuation
@@ -59,7 +58,8 @@ main_loop:
                 lda #%11001111  ;tone 3 freq
                 jsr sn_write
 
-                lda counter
+                tsx
+                txa
                 lsr a
                 pha             ;save counter>>1
                 lsr a
@@ -67,7 +67,7 @@ main_loop:
                 lsr a
                 and #7
                 tax
-                lda music,x
+                lda text,x;music,x
                 pha             ;save music byte
                 jsr sn_write
 
@@ -75,7 +75,7 @@ main_loop:
                 jsr sn_write
 
                 pla             ;restore music byte
-                asl a
+                asl a           ;lower by 1 octave
                 jsr sn_write
 
                 pla             ;restore counter>>1
@@ -97,7 +97,7 @@ main_loop:
 +
                 sta $fe01
 
-                inc counter
+                pla             ;increment counter
 
                 lda #2
 -
@@ -139,23 +139,23 @@ sn_write:
                 rts
 
 init:
-                ldy #16
+                ldx #16
 init_loop:
-                lda xs-1,y
+                lda xs-1,x
                 ;and #%11111000 ;no need! It's the pixel fraction!
                 sta text.x+1
 
                 and #%00000111
                 sta text.x+0
 
-                ldx #text.message-1-text
+                ldy #text.message-text
 -
-                lda text,x
+                lda text-1,y
                 jsr oswrch
-                dex
-                bpl -
-
                 dey
+                bne -
+
+                dex
                 bne init_loop
 
                 rts                
