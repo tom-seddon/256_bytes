@@ -5,7 +5,7 @@
                 
 *=$1900
                 .dsection code
-                .cerror *>$1a00,"overflow"
+                ;.cerror *>$1a00,"overflow"
                 ;.fill $1a00-*,0
                 
                 .section zp
@@ -16,27 +16,18 @@ counter:
                 .section code
 
 start:
-                ldx #text.init-1-text
-                jsr print
+                lda #22
+                jsr oswrch
+
+                lda #2
+                jsr oswrch
 
                 ldx #$08
                 ldy #$f0  ;cursor off, display off
                 jsr read_write_crtc
 
-                ldy #32
-init_loop:
-                lda xs-1,y
-                ;and #%11111000 ;no need! It's the pixel fraction!
-                sta text.x+1
-
-                and #%00000111
-                sta text.x+0
-
-                ldx #text.message-1-text
-                jsr print
-
-                dey
-                bne init_loop
+                jsr init
+                jsr init
 
                 sty counter
 
@@ -47,9 +38,53 @@ init_loop:
 
                 sei
 main_loop:
+                lda counter
+                and #$0f
+                pha             ;save counter&15
+                ora #%11110000  ;noise attenuation
+                jsr sn_write
+
+                pla             ;restore counter&15
+                clc
+                adc #8
+                and #$0f
+                pha             ;save 4-bit tone attenuation 
+                ora #%11010000  ;tone 3 attenuation
+                jsr sn_write
+
+                pla             ;restore 4-bit tone attenuation 
+                ora #%10110000  ;tone 2 attenuation
+                jsr sn_write
+
+                lda #%11001111  ;tone 3 freq
+                jsr sn_write
+
+                lda counter
+                lsr a
+                pha             ;save counter>>1
+                lsr a
+                lsr a
+                lsr a
+                and #7
+                tax
+                lda music,x
+                pha             ;save music byte
+                jsr sn_write
+
+                lda #%10101111  ;tone 2 freq
+                jsr sn_write
+
+                pla             ;restore music byte
+                asl a
+                jsr sn_write
+
+                pla             ;restore counter>>1
+                and #3
+                ora #%11100100  ;white noise
+                jsr sn_write
+
                 ldx #13
                 jsr read_write_crtc
-                clc
                 adc #80
                 sta $fe01
 
@@ -63,37 +98,6 @@ main_loop:
                 sta $fe01
 
                 inc counter
-
-                lda counter
-                and #$0f
-                ora #%11110000  ;noise attenuation
-                jsr sn_write
-
-                lda counter
-                clc
-                adc #8
-                and #$0f
-                ora #%11010000  ;tone 3 attenuation
-                jsr sn_write
-
-                lda #%11001111  ;tone 3 freq
-                jsr sn_write
-
-                lda counter
-                lsr a
-                pha
-                lsr a
-                lsr a
-                lsr a
-                and #7
-                tax
-                lda music,x
-                jsr sn_write
-
-                pla
-                and #3
-                ora #%11100100  ;white noise
-                jsr sn_write
 
                 lda #2
 -
@@ -117,11 +121,6 @@ y_loop:
 
                 beq main_loop
                 
-print:
-                lda text,x
-                jsr oswrch
-                dex
-                bpl print
 read_write_crtc:
                 stx $fe00
                 lda $fe01
@@ -139,6 +138,28 @@ sn_write:
                 sta system_via.orb
                 rts
 
+init:
+                ldy #16
+init_loop:
+                lda xs-1,y
+                ;and #%11111000 ;no need! It's the pixel fraction!
+                sta text.x+1
+
+                and #%00000111
+                sta text.x+0
+
+                ldx #text.message-1-text
+-
+                lda text,x
+                jsr oswrch
+                dex
+                bpl -
+
+                dey
+                bne init_loop
+
+                rts                
+                
 music:
                 .byte 22        ;F
                 .byte 25        ;Eb
@@ -154,8 +175,8 @@ initial_x=1280
 initial_y=1023
                 
 xs:
-                .for i:=0,i<32,i+=1
-value:=80-int(len(message_text)/2.0*8+sin(i/31.0*2.0*pi)*8)
+                .for i:=0,i<16,i+=1
+value:=80-int(len(message_text)/2.0*8+sin(i/15.0*2.0*pi)*4)
                 ; Mode 2 scale - 8 graphics units per pixel
                 .byte (value&%00011111)<<3|(value&%11100000)>>5
                 .next
@@ -175,8 +196,6 @@ x:
                 .text 4,25      ;PLOT4 = MOVE
                 .text 5,11,4
 message:
-                .text 2,22      ;MODE 2
-init:
                 .bend
 
                 .send code
