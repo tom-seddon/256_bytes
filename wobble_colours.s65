@@ -67,7 +67,7 @@ main_loop:
                 lsr a
                 and #7
                 tax
-                lda text,x;music,x
+                lda music,x
                 pha             ;save music byte
                 jsr sn_write
 
