@@ -133,8 +133,9 @@ sn_write:
                 sta system_via.ora_no_handshake
                 inx
                 stx system_via.orb
-                lda system_via.irb
-                ora #$08
+                nop
+                nop
+                lda #8
                 sta system_via.orb
                 rts
 
