@@ -30,6 +30,9 @@ start:
                 sei
                 txs
 
+                dex
+                stx system_via.ddra
+                
                 ; this puts the cursor back on. But... VDU5! So the
                 ; cursor is hidden anyway.
                 ldx #8
@@ -44,8 +47,7 @@ main_loop:
                 jsr sn_write
 
                 pla             ;restore counter&15
-                clc
-                adc #8
+                adc #7
                 and #$0f
                 pha             ;save 4-bit tone attenuation 
                 ora #%11010000  ;tone 3 attenuation
@@ -58,7 +60,6 @@ main_loop:
                 lda #%11001111  ;tone 3 freq
                 jsr sn_write
 
-                tsx
                 txa
                 lsr a
                 pha             ;save counter>>1
@@ -85,7 +86,7 @@ main_loop:
 
                 ldx #13
                 jsr read_write_crtc
-                adc #80
+                adc #79+SCROLL_OFFSET
                 sta $fe01
 
                 dex
@@ -128,14 +129,13 @@ read_write_crtc:
                 rts
 
 sn_write:
-                ldx #$ff
-                stx system_via.ddra
                 sta system_via.ora_no_handshake
-                inx
-                stx system_via.orb
-                nop
-                nop
-                lda #8
+                lda #$00
+                sta system_via.orb
+                lda #$22
+-
+                lsr a
+                bcc -
                 sta system_via.orb
                 rts
 

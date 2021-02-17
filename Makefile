@@ -22,7 +22,8 @@ SSD:=ssd
 build:
 	$(SHELLCMD) mkdir "$(DEST)"
 	$(SHELLCMD) mkdir "$(TMP)"
-	$(MAKE) _assemble SRC=wobble_colours BBC=1
+	$(MAKE) _assemble SRC=wobble_colours BBC=1 "EXTRA=-DSCROLL_OFFSET=0"
+	$(MAKE) _assemble SRC=wobble_colours BBC=2 "EXTRA=-DSCROLL_OFFSET=1"
 	$(MAKE) _ssds
 
 ##########################################################################
@@ -30,7 +31,7 @@ build:
 
 .PHONY:_assemble
 _assemble:
-	$(TASSCMD) "$(SRC).s65" "-L$(TMP)/$(SRC).lst" "-l$(TMP)/$(SRC).sym" "-o$(TMP)/$(SRC).prg"
+	$(TASSCMD) $(EXTRA) "$(SRC).s65" "-L$(TMP)/$(SRC).lst" "-l$(TMP)/$(SRC).sym" "-o$(TMP)/$(SRC).prg"
 	$(PYTHON) $(BEEB_BIN)/prg2bbc.py "$(TMP)/$(SRC).prg" "$(DEST)/@.$(BBC)"
 
 ##########################################################################
@@ -39,7 +40,7 @@ _assemble:
 .PHONY:_ssds
 _ssds:
 	$(PYTHON) $(BEEB_BIN)/ssd_create.py -o "$(TMP)/wobble_colours.ssd" -b "*/@.1" "$(DEST)/@.1"
-	sha1sum "$(TMP)/wobble_colours.ssd"
+	$(PYTHON) $(BEEB_BIN)/ssd_create.py -o "$(TMP)/wobble_colours_scroll.ssd" -b "*/@.2" "$(DEST)/@.2"
 
 ##########################################################################
 ##########################################################################
@@ -55,6 +56,7 @@ clean:
 dist:
 	$(SHELLCMD) mkdir "$(SSD)"
 	$(SHELLCMD) copy-file "$(TMP)/wobble_colours.ssd" "$(SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/wobble_colours_scroll.ssd" "$(SSD)/"
 
 ##########################################################################
 ##########################################################################
@@ -66,9 +68,10 @@ GITHUB_IO:=$(HOME)/github/tom-seddon.github.io/
 dist_and_upload:
 	$(MAKE) dist
 	$(MAKE) _github.io NAME=wobble_colours.ssd
+	$(MAKE) _github.io NAME=wobble_colours_scroll.ssd
 	cd "$(GITHUB_IO)" && git push
 
 .PHONY:_github.io
 _github.io:
 	cp "$(TMP)/$(NAME)" "$(GITHUB_IO)/"
-	cd "$(GITHUB_IO)" && git add "$(NAME)" && git commit -m "Add $(NAME)." "$(NAME)"
+	cd "$(GITHUB_IO)" && git add "$(NAME)" && git commit -m "Add/update $(NAME)." "$(NAME)"
