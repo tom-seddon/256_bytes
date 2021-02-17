@@ -14,30 +14,39 @@
                 .section code
 
 start:
-                lda #22
+                ldx #3
+                ldy #init_message-text
+                bne prloop
+
+initloop:
+                bcc noadd
+                lda text_x
+add:
+                adc #7
+                sta text_x
+noadd:
+                ldy #message-text
+prloop:
+                lda text-1,y
                 jsr oswrch
+                dey
+                bne prloop
 
-                lda #2
-                jsr oswrch
-
-                ldx #$08
-                ldy #$f0  ;cursor off, display off
-                jsr read_write_crtc
-
-                jsr init
-                jsr init
-
-                sei
-                txs
-
+                clc
+nextdelta:
+                ror deltas,x
+                bne initloop
+                lda vals-1,x
+                sta add+1
                 dex
-                stx system_via.ddra
+                bpl nextdelta
                 
-                ; this puts the cursor back on. But... VDU5! So the
-                ; cursor is hidden anyway.
-                ldx #8
-                jsr read_write_crtc
+                sei
 
+                stx system_via.ddra
+                inx
+                txs
+                
 main_loop:
                 tsx
                 txa
@@ -85,12 +94,12 @@ main_loop:
                 jsr sn_write
 
                 ldx #13
-                jsr read_write_crtc
+                jsr read_crtc
                 adc #79+SCROLL_OFFSET
                 sta $fe01
 
                 dex
-                jsr read_write_crtc
+                jsr read_crtc
                 adc #0
                 cmp #$10
                 bcc +
@@ -122,10 +131,9 @@ y_loop:
 
                 beq main_loop
                 
-read_write_crtc:
+read_crtc:
                 stx $fe00
                 lda $fe01
-                sty $fe01
                 rts
 
 sn_write:
@@ -139,28 +147,6 @@ sn_write:
                 sta system_via.orb
                 rts
 
-init:
-                ldx #16
-init_loop:
-                lda xs-1,x
-                ;and #%11111000 ;no need! It's the pixel fraction!
-                sta text.x+1
-
-                and #%00000111
-                sta text.x+0
-
-                ldy #text.message-text
--
-                lda text-1,y
-                jsr oswrch
-                dey
-                bne -
-
-                dex
-                bne init_loop
-
-                rts                
-                
 music:
                 .byte 22        ;F
                 .byte 25        ;Eb
@@ -172,7 +158,7 @@ music:
                 .byte 30        ;C
                 
 message_text="BITSHIFTERS"
-initial_x=1280
+initial_x=256
 initial_y=1023
                 
 xs:
@@ -182,22 +168,32 @@ value:=80-int(len(message_text)/2.0*8+sin(i/15.0*2.0*pi)*4)
                 .byte (value&%00011111)<<3|(value&%11100000)>>5
                 .next
 
-text: .block
+text:
                 .text message_text[::-1]
-y:
                 .byte >initial_y
                 .byte <initial_y
-x:
-                ; Gets printed when the init text is printed! - so
-                ; initial value must put the output somewhere off
-                ; screen.
                 .byte >initial_x
+text_x:
                 .byte <initial_x
                 
                 .text 4,25      ;PLOT4 = MOVE
                 .text 5,11,4
 message:
-                .bend
+                .text 0,0,7,19
+vals:
+                .byte 247
+                .byte 247
+                .byte 7
+
+deltas:
+                .byte 1+2+4+16+64
+                .byte 8+32+128
+                .byte 1+2+4+16+64
+                .byte 4+16+64+128
+                
+                .text 8,0,23    ;
+                .text 2,22      ;MODE 2
+init_message:
 
                 .send code
                 
