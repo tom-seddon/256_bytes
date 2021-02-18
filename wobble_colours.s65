@@ -159,13 +159,6 @@ message_text="BITSHIFTERS"
 initial_x=256
 initial_y=1023
                 
-xs:
-                .for i:=0,i<16,i+=1
-value:=80-int(len(message_text)/2.0*8+sin(i/15.0*2.0*pi)*4)
-                ; Mode 2 scale - 8 graphics units per pixel
-                .byte (value&%00011111)<<3|(value&%11100000)>>5
-                .next
-
 text:
                 .text message_text[::-1]
                 .byte >initial_y
