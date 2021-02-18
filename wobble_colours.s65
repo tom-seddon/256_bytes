@@ -88,13 +88,14 @@ main_loop:
                 jsr sn_write
 
                 pla             ;restore counter>>1
+                cmp #128-40
                 and #3
                 ora #%11100100  ;white noise
                 jsr sn_write
 
                 ldx #13
                 jsr read_crtc
-                adc #79+SCROLL_OFFSET
+                adc #80
                 sta $fe01
 
                 dex
@@ -114,12 +115,15 @@ main_loop:
                 beq -
                 sta system_via.ifr
 
-                ldx #19
+                inx             ;X=13
 x_loop:
                 ldy #128
 y_loop:
                 lda system_via.t1c_h
                 ora #$70
+                sta video_ula_palette
+
+                eor #$7f
                 sta video_ula_palette
 
                 dey
