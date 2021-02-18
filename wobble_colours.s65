@@ -14,8 +14,8 @@
                 .section code
 
 start:
-                ldx #3
-                ldy #init_message-text
+                ldx #4
+                ldy #init_message-1-text
                 bne prloop
 
 initloop:
@@ -25,26 +25,25 @@ add:
                 adc #7
                 sta text_x
 noadd:
-                ldy #message-text
+                ldy #message-1-text
 prloop:
-                lda text-1,y
+                lda text,y
                 jsr oswrch
                 dey
-                bne prloop
+                bpl prloop
 
                 clc
 nextdelta:
-                ror deltas,x
+                ror deltas-1,x
                 bne initloop
-                lda vals-1,x
+                lda vals-2,x
                 sta add+1
                 dex
-                bpl nextdelta
+                bne nextdelta
                 
                 sei
 
-                stx system_via.ddra
-                inx
+                sty system_via.ddra
                 txs
                 
 main_loop:
@@ -56,7 +55,7 @@ main_loop:
                 jsr sn_write
 
                 pla             ;restore counter&15
-                adc #7
+                eor #8
                 and #$0f
                 pha             ;save 4-bit tone attenuation 
                 ora #%11010000  ;tone 3 attenuation
@@ -85,7 +84,7 @@ main_loop:
                 jsr sn_write
 
                 pla             ;restore music byte
-                asl a           ;lower by 1 octave
+                asl a           ;lower by 1 octave - also clc
                 jsr sn_write
 
                 pla             ;restore counter>>1
@@ -131,20 +130,15 @@ y_loop:
 
                 beq main_loop
                 
-read_crtc:
-                stx $fe00
-                lda $fe01
-                rts
-
 sn_write:
                 sta system_via.ora_no_handshake
                 lda #$00
                 sta system_via.orb
-                lda #$22
--
-                lsr a
-                bcc -
-                sta system_via.orb
+read_crtc:
+                stx $fe00
+                lda $fe01
+                ldy #8
+                sty system_via.orb
                 rts
 
 music:
