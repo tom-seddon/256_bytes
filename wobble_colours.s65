@@ -70,10 +70,10 @@ main_loop:
 
                 txa
                 lsr a
-                pha             ;save counter>>1
                 lsr a
                 lsr a
                 lsr a
+                pha             ;save percussion counter
                 and #7
                 tax
                 lda music,x
@@ -87,15 +87,20 @@ main_loop:
                 asl a           ;lower by 1 octave - also clc
                 jsr sn_write
 
-                pla             ;restore counter>>1
-                cmp #128-40
+                pla             ;restore percussion counter
+                cmp #16-5       ;C=15 if <=80 steps to go in the
+                                ;sequence
                 and #3
-                ora #%11100100  ;white noise
+                tax
+                lda percussion,x
+                ;ora #%11100100  ;white noise
                 jsr sn_write
 
                 ldx #13
                 jsr read_crtc
-                adc #80
+                adc #80         ;includes a +1 if in the last 80
+                                ;steps, to give the horizontal
+                                ;movement
                 sta $fe01
 
                 dex
@@ -132,7 +137,7 @@ y_loop:
                 dex
                 bne x_loop
 
-                beq main_loop
+                jmp main_loop
                 
 sn_write:
                 sta system_via.ora_no_handshake
@@ -145,6 +150,12 @@ read_crtc:
                 sty system_via.orb
                 rts
 
+percussion:
+                .byte %11100110
+                .byte %11100100
+                .byte %11100110
+                .byte %11100101
+                
 music:
                 .byte 22        ;F
                 .byte 25        ;Eb
