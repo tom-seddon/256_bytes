@@ -74,23 +74,23 @@ main_loop:
                 lsr a
                 lsr a
                 pha             ;save percussion counter
-                and #7
+                and #15
                 tax
                 lda music,x
-                pha             ;save music byte
+                ; pha             ;save music byte
                 jsr sn_write
 
-                lda #%10101111  ;tone 2 freq
-                jsr sn_write
+                ; lda #%10101111  ;tone 2 freq
+                ; jsr sn_write
 
-                pla             ;restore music byte
-                asl a           ;lower by 1 octave - also clc
-                jsr sn_write
+                ; pla             ;restore music; byte
+                ; asl a           ;lower by 1 octave - also clc
+                ; jsr sn_write
 
                 pla             ;restore percussion counter
                 cmp #16-5       ;C=15 if <=80 steps to go in the
                                 ;sequence
-                and #3
+                and #1
                 tax
                 lda percussion,x
                 ;ora #%11100100  ;white noise
@@ -153,18 +153,28 @@ read_crtc:
 percussion:
                 .byte %11100110
                 .byte %11100100
-                .byte %11100110
-                .byte %11100101
+                ; .byte %11100110
+                ; .byte %11100101
+
+C4=30
+D4=27
+E4=24
+F4=22
+Fs4=21
+G4=20
+A4=18
+B4=16
+
+; E E G G A A A B
+; C C C E D D G F#
                 
 music:
-                .byte 22        ;F
-                .byte 25        ;Eb
-                .byte 27        ;D
-                .byte 25        ;Eb
-                .byte 27        ;D
-                .byte 25        ;Eb
-                .byte 27        ;D
-                .byte 30        ;C
+                ; .byte C4,G4,E4,G4
+                ; .byte F4,G4,F4,E4
+                ; .byte A4,E4,F4,E4
+                ; .byte G4,E4,F4,D4
+                .byte E4,E4,G4,G4,A4,A4,A4,B4
+                .byte C4,C4,C4,E4,D4,D4,G4,Fs4
                 
 message_text="BITSHIFTERS"
 initial_x=256
