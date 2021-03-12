@@ -1,0 +1,15 @@
+wobble_colours
+
+Colours and wobbling text for the BBC Micro, 256 bytes.
+For the LoveByte party, March 2021.
+
+By Tom Seddon (code), Rich T-W (code) and inversephase (music) of the
+Bitshifters Collective.
+
+Visit us at: https://bitshifters.github.io/
+
+Should work on any stock BBC Micro 32K computer.
+To catalogue the disc type: *CAT
+To check filesize type: *INFO @.1
+Gives: <dir>.<filename> <load address> <exec address> <size in hex> <sector no>
+To run type: *RUN @.1
