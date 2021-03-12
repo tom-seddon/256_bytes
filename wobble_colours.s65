@@ -55,17 +55,17 @@ main_loop:
                 jsr sn_write
 
                 pla             ;restore counter&15
-                eor #8
+                ;eor #8
                 and #$0f
-                pha             ;save 4-bit tone attenuation 
+                ; pha             ;save 4-bit tone attenuation 
                 ora #%11010000  ;tone 3 attenuation
                 jsr sn_write
 
-                pla             ;restore 4-bit tone attenuation 
-                ora #%10110000  ;tone 2 attenuation
-                jsr sn_write
+                ; pla             ;restore 4-bit tone attenuation 
+                ; ora #%10110000  ;tone 2 attenuation
+                ; jsr sn_write
 
-                lda #%11001111  ;tone 3 freq
+                lda #%11000000  ;tone 3 freq
                 jsr sn_write
 
                 txa
@@ -90,7 +90,7 @@ main_loop:
                 pla             ;restore percussion counter
                 cmp #16-5       ;C=15 if <=80 steps to go in the
                                 ;sequence
-                and #1
+                and #3
                 tax
                 lda percussion,x
                 ;ora #%11100100  ;white noise
@@ -125,10 +125,11 @@ x_loop:
                 ldy #128
 y_loop:
                 lda system_via.t1c_h
+
                 ora #$70
                 sta video_ula_palette
 
-                eor #$7f
+                eor #$77
                 sta video_ula_palette
 
                 dey
@@ -152,14 +153,14 @@ read_crtc:
 
 percussion:
                 .byte %11100110
+                .byte %11100110
                 .byte %11100100
-                ; .byte %11100110
-                ; .byte %11100101
+                .byte %11100101
 
 C4=30
 D4=27
 E4=24
-F4=22
+F4=23
 Fs4=21
 G4=20
 A4=18
@@ -175,13 +176,13 @@ music:
                 ; .byte G4,E4,F4,D4
                 .byte E4,E4,G4,G4,A4,A4,A4,B4
                 .byte C4,C4,C4,E4,D4,D4,G4,Fs4
-                
+                ;
 message_text="BITSHIFTERS"
 initial_x=256
 initial_y=1023
                 
 text:
-                .text message_text[::-1]
+                .text 224," ",message_text[::-1]
                 .byte >initial_y
                 .byte <initial_y
                 .byte >initial_x
@@ -203,7 +204,16 @@ deltas:
                 .byte 1+2+4+16+64
                 .byte 4+16+64+128
                 
-                .text 8,0,23    ;
+                .text 8,0,23
+                .text %11111111
+                .text %11001111
+                .text %11001111
+                .text %11000011
+                .text %11000011
+                .text %11110011
+                .text %11110011
+                .text %11111111
+                .text 224,23
                 .text 2,22      ;MODE 2
 init_message:
 
