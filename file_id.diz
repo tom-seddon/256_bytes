@@ -13,4 +13,4 @@ Should work on any stock BBC Micro 32K computer.
 To catalogue the disc type: *CAT
 To check filesize type: *INFO @.1
 Gives: <dir>.<filename> <load address> <exec address> <size in hex> <sector no>
-To run type: *RUN @.1
+To run, press Shift+BREAK, or type: *RUN @.1

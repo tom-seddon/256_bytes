@@ -1,0 +1,378 @@
+                .include "submodules/beeb/include/beeb.s65"
+
+;-------------------------------------------------------------------------
+;-------------------------------------------------------------------------
+
+*=$70
+                .dsection zp
+                .cerror *>=$90,"zp overflow"
+                
+*=$1100
+                .dsection code
+                ;.cerror *>=$3000,"code overflow"
+
+;-------------------------------------------------------------------------
+;-------------------------------------------------------------------------
+
+                .section zp
+ptr:
+                .fill 2
+nops_tmp:
+                .fill 1
+delay:
+                .fill 1
+                .send zp
+
+;-------------------------------------------------------------------------
+;-------------------------------------------------------------------------
+
+                .section code
+main: .block
+                ; cursor off, interlace off
+                lda #8
+                sta $fe00
+                lda #$c0
+                sta $fe01
+
+                ; no adjust scanlines
+                lda #5
+                sta $fe00
+                lda #0
+                sta $fe01
+                
+                jsr print_setup_vdu
+
+                lda #0
+                sta delay
+
+                sei
+
+loop:
+                ldx delay
+                inx
+                cpx #200
+                bne +
+                ldx #0
++
+                stx delay
+                
+                jsr wait_vsync
+                .nops 85
+
+                ; ~hblank in scanline 274
+
+                .nops (312-274-8)*128
+
+                ; ~hblank in scanline 0
+
+                ldx delay
+                beq +
+-
+                .nops 128-2-3
+                dex
+                bne -
++
+
+                .rept 5
+                
+                ; display off
+                lda #8          ;2
+                sta $fe00       ;8
+                lda #$f0        ;10
+                sta $fe01       ;16
+
+                .nops 12*128-16
+
+                ; display on
+                lda #8
+                sta $fe00
+                lda #$c0
+                sta $fe01
+
+                .nops 3*128-16
+
+                .next
+                
+                jmp loop
+                
+                rts
+                .bend
+                
+;-------------------------------------------------------------------------
+;-------------------------------------------------------------------------
+
+wait_vsync: .proc
+                lda #2
+-
+                bit system_via.ifr
+                beq -
+                sta system_via.ifr
+                rts
+                .pend
+                
+;-------------------------------------------------------------------------
+;-------------------------------------------------------------------------
+
+print_setup_vdu: .proc
+                lda #<vdu
+                sta ptr+0
+                lda #>vdu
+                sta ptr+1
+
+loop:
+                ldx #ptr
+                lda (0,x)
+                jsr oswrch
+
+                inc ptr+0
+                bne +
+                inc ptr+1
++
+
+                lda ptr+0
+                cmp #<vdu.end
+                bne loop
+
+                lda ptr+1
+                cmp #>vdu.end
+                bne loop
+                
+                rts
+
+vdu: .block
+
+xc: .function yc,half
+                .endf floor(half*640+320+cos(yc/(18.0+half)*2*pi)*320)
+                
+                .text 22,128
+                .text 19,0,7,0,0,0
+                .text 19,1,1,0,0,0
+
+                .for i=0,i<256,i+=1
+                .for half=0,half<2,half+=1
+                .byte 25,4      ;move
+                .sint xc(i-1,half),(i-1)*4
+                .byte 25,5      ;draw
+                .sint xc(i,half),i*4
+                .byte 25,4
+                .sint xc(i-1,half),i*4
+                .byte 25,5
+                .sint xc(i,half),(i+1)*4
+                .next
+                .next
+end:
+                .bend
+                .pend
+
+;-------------------------------------------------------------------------
+;-------------------------------------------------------------------------
+
+nops: .macro ncycles
+n:=\ncycles
+
+                .cerror n<0,"delay amount must be positive"
+                .cerror n==1,"can't delay for just 1 cycle"
+
+                .if n%2==1
+                sta nops_tmp
+n:=n-3
+                .endif
+
+                .rept n/32768
+                jsr cycles_wait_32768
+n:=n-32768
+                .next
+
+                .rept n/16384
+                jsr cycles_wait_16384
+n:=n-16384
+                .next
+
+                .rept n/8192
+                jsr cycles_wait_8192
+n:=n-8192
+                .next
+
+                .rept n/4096
+                jsr cycles_wait_4096
+n:=n-4096
+                .next
+
+                .rept n/2048
+                jsr cycles_wait_2048
+n:=n-2048
+                .next
+                
+                .rept n/1024
+                jsr cycles_wait_1024
+n:=n-1024
+                .next
+
+                .rept n/512
+                jsr cycles_wait_512
+n:=n-512
+                .next
+
+                .rept n/256
+                jsr cycles_wait_256
+n:=n-256
+                .next
+
+                .rept n/128
+                jsr cycles_wait_128
+n:=n-128
+                .next
+
+                .cerror n>126,"???"
+                .cerror n%2!=0,"???"
+
+                .if n>12
+                jsr cycles_wait_126+(126-n)/2
+n:=0
+                .else
+                .rept n/2
+                nop
+                .next
+                .endif
+                
+                .endm
+
+cycles_wait_32768:
+                jsr cycles_wait_16384
+cycles_wait_16384:
+                jsr cycles_wait_8192
+cycles_wait_8192:
+                jsr cycles_wait_4096
+cycles_wait_4096:
+                jsr cycles_wait_2048
+cycles_wait_2048:
+                jsr cycles_wait_1024
+cycles_wait_1024:
+                jsr cycles_wait_512
+cycles_wait_512:
+                jsr cycles_wait_256
+cycles_wait_256:
+                jsr cycles_wait_128
+cycles_wait_128:
+                nop
+cycles_wait_126:
+                nop
+cycles_wait_124:
+                nop
+cycles_wait_122:
+                nop
+cycles_wait_120:
+                nop
+cycles_wait_118:
+                nop
+cycles_wait_116:
+                nop
+cycles_wait_114:
+                nop
+cycles_wait_112:
+                nop
+cycles_wait_110:
+                nop
+cycles_wait_108:
+                nop
+cycles_wait_106:
+                nop
+cycles_wait_104:
+                nop
+cycles_wait_102:
+                nop
+cycles_wait_100:
+                nop
+cycles_wait_98:
+                nop
+cycles_wait_96:
+                nop
+cycles_wait_94:
+                nop
+cycles_wait_92:
+                nop
+cycles_wait_90:
+                nop
+cycles_wait_88:
+                nop
+cycles_wait_86:
+                nop
+cycles_wait_84:
+                nop
+cycles_wait_82:
+                nop
+cycles_wait_80:
+                nop
+cycles_wait_78:
+                nop
+cycles_wait_76:
+                nop
+cycles_wait_74:
+                nop
+cycles_wait_72:
+                nop
+cycles_wait_70:
+                nop
+cycles_wait_68:
+                nop
+cycles_wait_66:
+                nop
+cycles_wait_64:
+                nop
+cycles_wait_62:
+                nop
+cycles_wait_60:
+                nop
+cycles_wait_58:
+                nop
+cycles_wait_56:
+                nop
+cycles_wait_54:
+                nop
+cycles_wait_52:
+                nop
+cycles_wait_50:
+                nop
+cycles_wait_48:
+                nop
+cycles_wait_46:
+                nop
+cycles_wait_44:
+                nop
+cycles_wait_42:
+                nop
+cycles_wait_40:
+                nop
+cycles_wait_38:
+                nop
+cycles_wait_36:
+                nop
+cycles_wait_34:
+                nop
+cycles_wait_32:
+                nop
+cycles_wait_30:
+                nop
+cycles_wait_28:
+                nop
+cycles_wait_26:
+                nop
+cycles_wait_24:
+                nop
+cycles_wait_22:
+                nop
+cycles_wait_20:
+                nop
+cycles_wait_18:
+                nop
+cycles_wait_16:
+                nop
+cycles_wait_14:
+                nop
+cycles_wait_12:
+                rts
+
+                .send code
+
+                
+                
