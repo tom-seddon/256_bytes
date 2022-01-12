@@ -34,12 +34,12 @@ index: .fill 1
 ; mask: .byte 128
 ;                 .endstruct
 
-store_text: .macro text
+scroll_text: .macro text
                 .for i=0,i<len(\text),i+=1
                 .cerror (\text[i]&$80)!=0,"7-bit strings only"
 
                 ; %abcdefgh => %defghabc
-                .byte (\text[i]&%0110000)>>5|(\text[i]&%00011111)<<3|(i==len(\text)-1?%00000100:0)
+                .byte (\text[i]&%01100000)>>5|(\text[i]&%00011111)<<3|(i==len(\text)-1?%00000100:0)
                 .endfor
                 .endmacro
 
@@ -120,10 +120,13 @@ main_loop:
 write_glyph_rows:
                 ldx index
                 lda bitshifters,x
-                sta glyph+0
-                lda #$b8>>3
-                jsr shift_glyph_3
+                pha
+                and #%00000011
+                ora #(>font_data-1)
                 sta glyph+1
+                pla
+                and #%11111000
+                sta glyph+0
                 ldy #0
 -
                 lda (glyph),y
@@ -152,14 +155,6 @@ write_crtc:
                 sta $fe01
                 rts
 
-shift_glyph_3:
-                jsr shift_glyph_1
-                jsr shift_glyph_1
-shift_glyph_1:
-                asl glyph+0
-                rol a
-                rts
-                
 write_3_rows:
                 jsr write_1_row
                 jsr write_1_row
@@ -190,7 +185,7 @@ mask: .byte 128
                 
 scrolltexts:
 bitshifters: .block
-                .text 'LOVEBYTE';X Y Z';LOVEBYTE';'BITSHIFTERS'
+                .scroll_text 'LOVEBYTE';X Y Z';LOVEBYTE';'BITSHIFTERS'
                 .endblock
                 
                  .endsection code
