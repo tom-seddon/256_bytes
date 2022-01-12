@@ -58,7 +58,7 @@ start:
                 sta romsel
 
                 sei
-                
+
                 lda #0
                 sta $fe20
                 clc
@@ -67,14 +67,7 @@ start:
                 adc #$11
                 bcc -
 
-;                 ldx #0
-; -
-;                 txa
-;                 sta $7c00,x
-;                 inx
-;                 bne -
-
-                ldy #6
+                ldx #6
                 lda #25
                 jsr write_crtc
 
@@ -86,27 +79,26 @@ reset_top_left:
                 sta top_left+1
 
 main_loop:
-                ldy #12
+                ldx #12
                 lda top_left+1
                 sta dest+1
-                sec
-                sbc #$74
+                eor #$74
                 eor #$20
                 jsr write_crtc
-                iny
+                inx
                 lda top_left+0
                 sta dest+0
                 jsr write_crtc
 
                 lda #VIAIRQ.ca1
 -
-                bit system_via.ifr
+                bit system_via.ifr ;V when T1
                 beq -
                 sta system_via.ifr
 
                 jsr add_40_to_dest
 
-                lda $fe45
+                lda #$ff
                 sta (dest)
 
                 ldx #top_left
@@ -151,7 +143,7 @@ write_glyph_rows:
                 bra main_loop
                 
 write_crtc:
-                sty $fe00
+                stx $fe00
                 sta $fe01
                 rts
 
