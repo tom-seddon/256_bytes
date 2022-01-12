@@ -25,6 +25,7 @@ build:
 	$(MAKE) _assemble SRC=wobble_colours BBC=1 SSD=wobble_colours "EXTRA=-DSCROLL_OFFSET=0"
 	$(MAKE) _assemble SRC=wobble_colours BBC=2 SSD=wobble_colours_scroll "EXTRA=-DSCROLL_OFFSET=1"
 	$(MAKE) _assemble SRC=alias_sines BBC=ASINES SSD=alias_sines
+	$(MAKE) _assemble SRC=3_scrollers BBC=3SCROLL SSD=love_byte_2022
 
 ##########################################################################
 ##########################################################################

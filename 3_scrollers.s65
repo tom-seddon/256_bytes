@@ -1,0 +1,197 @@
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+;-------------------------------------------------------------------------
+
+terminal_rom=15
+
+                ; naughty MOS 3.20 entry points
+font_data=$b900
+; set_crtc_address_for_mode7=$c70d
+                
+;-------------------------------------------------------------------------
+
+
+*=$70
+                .dsection zp
+*=$1900
+                .dsection code
+
+;-------------------------------------------------------------------------
+
+                .section zp
+top_left: .fill 2
+dest: .fill 2
+glyph: .fill 2
+index: .fill 1
+                .endsection zp
+
+; Scroller: .struct text,n
+; index: .byte \text-scrolltexts
+; max_index: .byte \n
+; reset_index: .byte \text-scrolltexts
+; counter: .byte 0
+; mask: .byte 128
+;                 .endstruct
+
+store_text: .macro text
+                .for i=0,i<len(\text),i+=1
+                .cerror (\text[i]&$80)!=0,"7-bit strings only"
+
+                ; %abcdefgh => %defghabc
+                .byte (\text[i]&%0110000)>>5|(\text[i]&%00011111)<<3|(i==len(\text)-1?%00000100:0)
+                .endfor
+                .endmacro
+
+;-------------------------------------------------------------------------
+
+                .section code
+start:
+                lda #22
+                jsr oswrch
+                
+                lda #5
+                jsr oswrch
+
+                lda #terminal_rom
+                sta $f4
+                sta romsel
+
+                sei
+                
+                lda #0
+                sta $fe20
+                clc
+-
+                sta $fe21
+                adc #$11
+                bcc -
+
+;                 ldx #0
+; -
+;                 txa
+;                 sta $7c00,x
+;                 inx
+;                 bne -
+
+                ldy #6
+                lda #25
+                jsr write_crtc
+
+                stz index
+
+reset_top_left:
+                stz top_left+0
+                lda #$7c
+                sta top_left+1
+
+main_loop:
+                ldy #12
+                lda top_left+1
+                sta dest+1
+                sec
+                sbc #$74
+                eor #$20
+                jsr write_crtc
+                iny
+                lda top_left+0
+                sta dest+0
+                jsr write_crtc
+
+                lda #VIAIRQ.ca1
+-
+                bit system_via.ifr
+                beq -
+                sta system_via.ifr
+
+                jsr add_40_to_dest
+
+                lda $fe45
+                sta (dest)
+
+                ldx #top_left
+                lda #1
+                jsr add_to_addrz
+
+                ;bra main_loop
+
+                jsr add_40_to_dest
+                ldy #0
+write_glyph_rows:
+                ldx index
+                lda bitshifters,x
+                sta glyph+0
+                lda #$b8>>3
+                jsr shift_glyph_3
+                sta glyph+1
+                ldy #0
+-
+                lda (glyph),y
+                and mask
+                cmp #1
+                lda #255
+                adc #0
+                jsr write_3_rows
+                iny
+                cpy #8
+                bne -
+
+                lsr mask
+                bcc main_loop
+
+                ror mask
+                inc index
+                lda index
+                cmp #size(bitshifters)
+                bne main_loop
+                stz index
+                bra main_loop
+                
+write_crtc:
+                sty $fe00
+                sta $fe01
+                rts
+
+shift_glyph_3:
+                jsr shift_glyph_1
+                jsr shift_glyph_1
+shift_glyph_1:
+                asl glyph+0
+                rol a
+                rts
+                
+write_3_rows:
+                jsr write_1_row
+                jsr write_1_row
+write_1_row:
+                pha
+                sta (dest)
+                jsr add_40_to_dest
+                pla
+                rts
+                
+add_40_to_dest:
+                lda #40
+                ldx #dest
+add_to_addrz:
+                clc
+                adc 0,x
+                sta 0,x
+                bcc +
+                inc 1,x
+                bpl +
+                lda #$7c
+                sta 1,x
++
+                rts
+
+mask: .byte 128
+; index: .byte 0
+                
+scrolltexts:
+bitshifters: .block
+                .text 'LOVEBYTE';X Y Z';LOVEBYTE';'BITSHIFTERS'
+                .endblock
+                
+                 .endsection code
+                
