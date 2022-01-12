@@ -36,10 +36,13 @@ index: .fill 1
 
 scroll_text: .macro text
                 .for i=0,i<len(\text),i+=1
+                .cerror (\text[i]<32),"no control chars"
                 .cerror (\text[i]&$80)!=0,"7-bit strings only"
 
+c:=\text[i]-31
+
                 ; %abcdefgh => %defghabc
-                .byte (\text[i]&%01100000)>>5|(\text[i]&%00011111)<<3|(i==len(\text)-1?%00000100:0)
+                .byte (c&%01100000)>>5|(c&%00011111)<<3|(i==len(\text)-1?%00000100:0)
                 .endfor
                 .endmacro
 
@@ -81,9 +84,11 @@ reset_top_left:
 main_loop:
                 ldx #12
                 lda top_left+1
-                sta dest+1
-                eor #$74
-                eor #$20
+                pha
+                ;sta dest+1
+                eor #$54
+                ; eor #$74
+                ; eor #$20
                 jsr write_crtc
                 inx
                 lda top_left+0
@@ -96,19 +101,23 @@ main_loop:
                 beq -
                 sta system_via.ifr
 
+                inc top_left+0
+                bne +
+                lda top_left+1
+                jsr inc_msb     ;also modifies dest?1
+                sta top_left+1
++
+
+                pla
+                sta dest+1
+                
                 jsr add_40_to_dest
 
                 lda #$ff
                 sta (dest)
 
-                ldx #top_left
-                lda #1
-                jsr add_to_addrz
-
-                ;bra main_loop
 
                 jsr add_40_to_dest
-                ldy #0
 write_glyph_rows:
                 ldx index
                 lda bitshifters,x
@@ -119,16 +128,16 @@ write_glyph_rows:
                 pla
                 and #%11111000
                 sta glyph+0
-                ldy #0
+                ldy #$f8
 -
+                ldx #255
                 lda (glyph),y
                 and mask
-                cmp #1
-                lda #255
-                adc #0
+                beq +
+                inx
++
                 jsr write_3_rows
                 iny
-                cpy #8
                 bne -
 
                 lsr mask
@@ -151,24 +160,21 @@ write_3_rows:
                 jsr write_1_row
                 jsr write_1_row
 write_1_row:
-                pha
+                txa
                 sta (dest)
-                jsr add_40_to_dest
-                pla
-                rts
-                
 add_40_to_dest:
-                lda #40
-                ldx #dest
-add_to_addrz:
                 clc
-                adc 0,x
-                sta 0,x
-                bcc +
-                inc 1,x
+                lda dest+0
+                adc #40
+                sta dest+0
+                bcc ++
+                lda dest+1
+inc_msb:
+                inc a
                 bpl +
                 lda #$7c
-                sta 1,x
++
+                sta dest+1
 +
                 rts
 
