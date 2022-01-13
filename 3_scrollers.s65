@@ -56,11 +56,11 @@ start:
                 lda #5
                 jsr oswrch
 
+                sei
                 lda #terminal_rom
-                sta $f4
+                ;sta $f4
                 sta romsel
 
-                sei
 
                 lda #0
                 sta $fe20
@@ -77,18 +77,14 @@ start:
                 stz index
 
 reset_top_left:
-                stz top_left+0
                 lda #$7c
                 sta top_left+1
 
 main_loop:
                 ldx #12
                 lda top_left+1
-                pha
-                ;sta dest+1
+                sta dest+1
                 eor #$54
-                ; eor #$74
-                ; eor #$20
                 jsr write_crtc
                 inx
                 lda top_left+0
@@ -103,13 +99,11 @@ main_loop:
 
                 inc top_left+0
                 bne +
-                lda top_left+1
-                jsr inc_msb     ;also modifies dest?1
+                inc top_left+1
+                bpl +
+                lda #$7c
                 sta top_left+1
 +
-
-                pla
-                sta dest+1
                 
                 jsr add_40_to_dest
 
@@ -136,7 +130,9 @@ write_glyph_rows:
                 beq +
                 inx
 +
-                jsr write_3_rows
+                jsr write_1_row
+                jsr write_1_row
+                jsr write_1_row
                 iny
                 bne -
 
@@ -156,9 +152,6 @@ write_crtc:
                 sta $fe01
                 rts
 
-write_3_rows:
-                jsr write_1_row
-                jsr write_1_row
 write_1_row:
                 txa
                 sta (dest)
@@ -167,13 +160,10 @@ add_40_to_dest:
                 lda dest+0
                 adc #40
                 sta dest+0
-                bcc ++
-                lda dest+1
-inc_msb:
-                inc a
+                bcc +
+                inc dest+1
                 bpl +
                 lda #$7c
-+
                 sta dest+1
 +
                 rts
