@@ -20,10 +20,11 @@ font_data=$b900
 ;-------------------------------------------------------------------------
 
                 .section zp
-top_left: .fill 2
+;top_left: .fill 2
 dest: .fill 2
 glyph: .fill 2
 index: .fill 1
+index2: .fill 1
                 .endsection zp
 
 ; Scroller: .struct text,n
@@ -37,7 +38,7 @@ index: .fill 1
 scroll_text: .macro text
                 .for i=0,i<len(\text),i+=1
                 .cerror (\text[i]<'A'||\text[i]>'Z'),"letters only"
-                .byte $80|((\text[i]-64)*4)
+                .byte $80|((\text[i]-63)*4)
                 .endfor
                 .endmacro
 
@@ -45,13 +46,15 @@ scroll_text: .macro text
 
                 .section code
 start:
-                lda #22
+                ldx #size(init_text)-1
+-
+                lda init_text,x
                 jsr oswrch
-                
-                lda #5
-                jsr oswrch
+                dex
+                bpl -
 
                 stz index
+                stz index2
 
                 sei
                 lda #terminal_rom
@@ -61,12 +64,6 @@ start:
                 ldx #6
                 lda #25
                 jsr write_crtc
-
-                ;stz index
-
-reset_top_left:
-                lda #$7c
-                sta top_left+1
 
 main_loop:
                 ldx #12
@@ -100,11 +97,11 @@ main_loop:
                 lda scrolltexts,x
                 asl a
                 sta read_glyph+1
-                ldy #0
+                ldy #$f8
 write_glyph_row:
                 ldx #0
 read_glyph:
-                lda $ba00,y
+                lda $b900,y
                 and mask
                 beq +
                 dex
@@ -113,13 +110,12 @@ read_glyph:
                 jsr write_1_row
                 jsr write_1_row
                 iny
-                cpy #8
                 bne write_glyph_row
 
                 lsr mask
                 bcc main_loop
 
-                ror mask
+                ror mask        ;reinstate the 128
 
                 ldx index
                 inx
@@ -152,6 +148,14 @@ write_1_row:
 
 mask: .byte 128
 ; index: .byte 0
+top_left: .word $7c00
+
+init_text: .block
+_:=[]
+_..=[22,128+5]
+_..=[22,5]
+                .byte _[::-1]
+                .endblock
                 
 scrolltexts:
 lovebyte: .block
