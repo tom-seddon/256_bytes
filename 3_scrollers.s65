@@ -36,13 +36,8 @@ index: .fill 1
 
 scroll_text: .macro text
                 .for i=0,i<len(\text),i+=1
-                .cerror (\text[i]<32),"no control chars"
-                .cerror (\text[i]&$80)!=0,"7-bit strings only"
-
-c:=\text[i]-31
-
-                ; %abcdefgh => %defghabc
-                .byte (c&%01100000)>>5|(c&%00011111)<<3|(i==len(\text)-1?%00000100:0)
+                .cerror (\text[i]<'A'||\text[i]>'Z'),"letters only"
+                .byte $80|((\text[i]-64)*4)
                 .endfor
                 .endmacro
 
@@ -56,25 +51,18 @@ start:
                 lda #5
                 jsr oswrch
 
+                stz index
+
                 sei
                 lda #terminal_rom
                 ;sta $f4
                 sta romsel
 
-
-                lda #0
-                sta $fe20
-                clc
--
-                sta $fe21
-                adc #$11
-                bcc -
-
                 ldx #6
                 lda #25
                 jsr write_crtc
 
-                stz index
+                ;stz index
 
 reset_top_left:
                 lda #$7c
@@ -104,47 +92,42 @@ main_loop:
                 lda #$7c
                 sta top_left+1
 +
+
+                ldx #0
+                jsr write_1_row
                 
-                jsr add_40_to_dest
-
-                lda #$ff
-                sta (dest)
-
-
-                jsr add_40_to_dest
-write_glyph_rows:
                 ldx index
-                lda bitshifters,x
-                pha
-                and #%00000011
-                ora #(>font_data-1)
-                sta glyph+1
-                pla
-                and #%11111000
-                sta glyph+0
-                ldy #$f8
--
-                ldx #255
-                lda (glyph),y
+                lda scrolltexts,x
+                asl a
+                sta read_glyph+1
+                ldy #0
+write_glyph_row:
+                ldx #0
+read_glyph:
+                lda $ba00,y
                 and mask
                 beq +
-                inx
+                dex
 +
                 jsr write_1_row
                 jsr write_1_row
                 jsr write_1_row
                 iny
-                bne -
+                cpy #8
+                bne write_glyph_row
 
                 lsr mask
                 bcc main_loop
 
                 ror mask
-                inc index
-                lda index
-                cmp #size(bitshifters)
-                bne main_loop
-                stz index
+
+                ldx index
+                inx
+                lda scrolltexts,x
+                bmi +
+                tax
++
+                stx index
                 bra main_loop
                 
 write_crtc:
@@ -153,9 +136,6 @@ write_crtc:
                 rts
 
 write_1_row:
-                txa
-                sta (dest)
-add_40_to_dest:
                 clc
                 lda dest+0
                 adc #40
@@ -166,14 +146,20 @@ add_40_to_dest:
                 lda #$7c
                 sta dest+1
 +
+                txa
+                sta (dest)
                 rts
 
 mask: .byte 128
 ; index: .byte 0
                 
 scrolltexts:
-bitshifters: .block
-                .scroll_text 'LOVEBYTE';X Y Z';LOVEBYTE';'BITSHIFTERS'
+lovebyte: .block
+                .scroll_text 'LOVEBYTE'
+                .byte lovebyte-scrolltexts
+bitshifters:
+                .scroll_text 'BITSHIFTERS'
+                .byte bitshifters-scrolltexts
                 .endblock
                 
                  .endsection code
