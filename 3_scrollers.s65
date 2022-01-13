@@ -20,11 +20,8 @@ font_data=$b900
 ;-------------------------------------------------------------------------
 
                 .section zp
-;top_left: .fill 2
 dest: .fill 2
 glyph: .fill 2
-index: .fill 1
-mask: .fill 1
 pixel_mask: .fill 1
                 .endsection zp
 
@@ -56,11 +53,14 @@ start:
 
                 sei
                 lda #terminal_rom
-                ;sta $f4
                 sta romsel
 
                 ldx #6
                 lda #25
+                jsr write_crtc
+
+                ldx #8
+                lda #0
                 jsr write_crtc
 
 main_loop:
@@ -105,8 +105,6 @@ not_t1:
                 trb acccon      ;write to main RAM
                 ply
                 pla
-                ldx #15
-                stx pixel_mask
                 ldx #0
                 jsr draw_screen
 
@@ -114,29 +112,35 @@ not_t1:
                 tsb acccon      ;write to shadow RAM
                 ply
                 pla
-                ldx #255
-                stx pixel_mask
                 ldx #1
                 jsr draw_screen
+
+                lsr mask
+                bcc main_loop
+                ror mask        ;reinstate the 128
+
+                ldx #0
+                jsr update_index
+                inx
+                jsr update_index
 
                 bra main_loop
 
 draw_screen: .block
                 sta dest+0
                 sty dest+1
-                lda masks,x
-                sta mask
-                lda indexes,x
-                sta index
-                phx
 
+                lda pixel_masks,x
+                sta pixel_mask
+
+                ldy indexes,x
+                lda scrolltexts,y
+                asl a
+                sta read_glyph+1
+                
                 ldx #0
                 jsr write_1_row
 
-                ldx index
-                lda scrolltexts,x
-                asl a
-                sta read_glyph+1
                 ldy #$f8
 write_glyph_row:
                 ldx #0
@@ -152,24 +156,18 @@ got_value:
                 iny
                 bne write_glyph_row
 
-                lsr mask
-                bcc done
+                rts
+                .endblock
 
-                ror mask        ;reinstate the 128
-
-                ldx index
-                inx
-                lda scrolltexts,x
+update_index: .block
+                ldy indexes,x
+                iny
+                lda scrolltexts,y
                 bmi got_index
-                tax
+                tay
 got_index:
-                stx index
-done:
-                plx
-                lda index
+                tya             ;aaargh.
                 sta indexes,x
-                lda mask
-                sta masks,x
                 rts
                 .endblock
                 
@@ -195,7 +193,8 @@ write_1_row:
                 rts
 
 indexes: .byte scrolltexts.lovebyte-scrolltexts,scrolltexts.bitshifters-scrolltexts
-masks: .byte 128,128
+mask: .byte 128
+pixel_masks: .byte $0f,$ff
 ; index: .byte 0
 top_left: .word $7c00
 
