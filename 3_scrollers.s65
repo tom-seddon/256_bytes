@@ -44,23 +44,25 @@ scroll_text: .macro text
 
                 .section code
 start:
-                ldx #size(init_text)-1
+                ldx #size(init_text)
 -
-                lda init_text,x
+                lda init_text-1,x
                 jsr oswrch
                 dex
-                bpl -
+                bne -
 
                 sei
                 lda #terminal_rom
                 sta romsel
 
-                ldx #6
-                lda #25
+                ; R8=0 - interlace off
+                txa
+                ldx #8
                 jsr write_crtc
 
-                ldx #8
-                lda #0
+                ; R6=25 - shorter screen
+                ldx #6
+                lda #25
                 jsr write_crtc
 
 main_loop:
@@ -80,18 +82,17 @@ main_loop:
 
 check_via_loop:
                 lda #VIAIRQ.ca1
-                bit system_via.ifr ;V when T1
-                bvc not_t1
+                bit system_via.ifr
+                bvc check_ca1   ;taken if not T1
 got_t1:
-                lda acccon
-                eor #1
+                lsr a           ;A=1
+                eor acccon
                 sta acccon
-                lda #$40
-                sta system_via.ifr
-                bra check_via_loop
-not_t1:
-                beq check_via_loop
-                sta system_via.ifr
+                lda #VIAIRQ.t1
+check_ca1:
+                beq check_via_loop ;taken if not CA2, fall through if T1
+                sta system_via.ifr ;acknowledge CA2 or T1
+                bvs check_via_loop ;if it was T1, check again
 
                 inc top_left+0
                 bne +
@@ -101,19 +102,21 @@ not_t1:
                 sta top_left+1
 +
 
-                lda #4
-                trb acccon      ;write to main RAM
+                ; main RAM currently paged in
+                
                 ply
                 pla
                 ldx #0
                 jsr draw_screen
 
-                lda #4
-                tsb acccon      ;write to shadow RAM
+                tsb acccon      ;page in shadow RAM
+
                 ply
                 pla
                 ldx #1
                 jsr draw_screen
+
+                trb acccon      ;page in main RAM again
 
                 lsr mask
                 bcc main_loop
@@ -156,18 +159,18 @@ got_value:
                 iny
                 bne write_glyph_row
 
+                lda #4
+
                 rts
                 .endblock
 
 update_index: .block
+                inc indexes,x
                 ldy indexes,x
-                iny
                 lda scrolltexts,y
-                bmi got_index
-                tay
-got_index:
-                tya             ;aaargh.
+                bmi +
                 sta indexes,x
++
                 rts
                 .endblock
                 
