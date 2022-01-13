@@ -24,7 +24,8 @@ font_data=$b900
 dest: .fill 2
 glyph: .fill 2
 index: .fill 1
-index2: .fill 1
+mask: .fill 1
+pixel_mask: .fill 1
                 .endsection zp
 
 ; Scroller: .struct text,n
@@ -53,9 +54,6 @@ start:
                 dex
                 bpl -
 
-                stz index
-                stz index2
-
                 sei
                 lda #terminal_rom
                 ;sta $f4
@@ -68,18 +66,31 @@ start:
 main_loop:
                 ldx #12
                 lda top_left+1
-                sta dest+1
+                tay
                 eor #$54
                 jsr write_crtc
                 inx
                 lda top_left+0
-                sta dest+0
                 jsr write_crtc
 
+                pha             ;LSB
+                phy             ;MSB
+                pha             ;LSB
+                phy             ;MSB
+
+check_via_loop:
                 lda #VIAIRQ.ca1
--
                 bit system_via.ifr ;V when T1
-                beq -
+                bvc not_t1
+got_t1:
+                lda acccon
+                eor #1
+                sta acccon
+                lda #$40
+                sta system_via.ifr
+                bra check_via_loop
+not_t1:
+                beq check_via_loop
                 sta system_via.ifr
 
                 inc top_left+0
@@ -90,9 +101,38 @@ main_loop:
                 sta top_left+1
 +
 
+                lda #4
+                trb acccon      ;write to main RAM
+                ply
+                pla
+                ldx #15
+                stx pixel_mask
+                ldx #0
+                jsr draw_screen
+
+                lda #4
+                tsb acccon      ;write to shadow RAM
+                ply
+                pla
+                ldx #255
+                stx pixel_mask
+                ldx #1
+                jsr draw_screen
+
+                bra main_loop
+
+draw_screen: .block
+                sta dest+0
+                sty dest+1
+                lda masks,x
+                sta mask
+                lda indexes,x
+                sta index
+                phx
+
                 ldx #0
                 jsr write_1_row
-                
+
                 ldx index
                 lda scrolltexts,x
                 asl a
@@ -103,28 +143,35 @@ write_glyph_row:
 read_glyph:
                 lda $b900,y
                 and mask
-                beq +
+                beq got_value
                 dex
-+
+got_value:
                 jsr write_1_row
                 jsr write_1_row
-                jsr write_1_row
+                ; jsr write_1_row
                 iny
                 bne write_glyph_row
 
                 lsr mask
-                bcc main_loop
+                bcc done
 
                 ror mask        ;reinstate the 128
 
                 ldx index
                 inx
                 lda scrolltexts,x
-                bmi +
+                bmi got_index
                 tax
-+
+got_index:
                 stx index
-                bra main_loop
+done:
+                plx
+                lda index
+                sta indexes,x
+                lda mask
+                sta masks,x
+                rts
+                .endblock
                 
 write_crtc:
                 stx $fe00
@@ -143,10 +190,12 @@ write_1_row:
                 sta dest+1
 +
                 txa
+                and pixel_mask
                 sta (dest)
                 rts
 
-mask: .byte 128
+indexes: .byte scrolltexts.lovebyte-scrolltexts,scrolltexts.bitshifters-scrolltexts
+masks: .byte 128,128
 ; index: .byte 0
 top_left: .word $7c00
 
@@ -157,8 +206,8 @@ _..=[22,5]
                 .byte _[::-1]
                 .endblock
                 
-scrolltexts:
-lovebyte: .block
+scrolltexts: .block
+lovebyte:
                 .scroll_text 'LOVEBYTE'
                 .byte lovebyte-scrolltexts
 bitshifters:
