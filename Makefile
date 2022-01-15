@@ -26,6 +26,7 @@ build:
 	$(MAKE) _assemble SRC=wobble_colours BBC=2 SSD=wobble_colours_scroll "EXTRA=-DSCROLL_OFFSET=1"
 	$(MAKE) _assemble SRC=alias_sines BBC=ASINES SSD=alias_sines
 	$(MAKE) _assemble SRC=3_scrollers BBC=3SCROLL SSD=love_byte_2022
+	$(MAKE) _assemble SRC=pattern BBC=PATTERN SSD=pattern
 
 ##########################################################################
 ##########################################################################
@@ -51,6 +52,7 @@ dist:
 	$(SHELLCMD) mkdir "$(SSD)"
 	$(SHELLCMD) copy-file "$(TMP)/wobble_colours.ssd" "$(SSD)/"
 	$(SHELLCMD) copy-file "$(TMP)/wobble_colours_scroll.ssd" "$(SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/love_byte_2022.ssd" "$(SSD)/"
 
 ##########################################################################
 ##########################################################################
@@ -64,9 +66,10 @@ dist_and_upload:
 	$(MAKE) _github.io NAME=wobble_colours.ssd
 	$(MAKE) _github.io NAME=wobble_colours_scroll.ssd
 	$(MAKE) _github.io NAME=alias_sines.ssd
+	$(MAKE) _github.io NAME=love_byte_2022.ssd
 	cd "$(GITHUB_IO)" && git push
 
 .PHONY:_github.io
 _github.io:
 	cp "$(TMP)/$(NAME)" "$(GITHUB_IO)/"
-	cd "$(GITHUB_IO)" && git add "$(NAME)" && git commit -m "Add/update $(NAME)." "$(NAME)"
+	cd "$(GITHUB_IO)" && git add "$(NAME)" && git commit --allow-empty -m "Add/update $(NAME)." "$(NAME)"

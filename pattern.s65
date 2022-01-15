@@ -1,0 +1,90 @@
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+;-------------------------------------------------------------------------
+
+*=$70
+                .dsection zp
+*=$1900
+                .dsection code
+
+;-------------------------------------------------------------------------
+
+                .section zp
+addr:
+                .fill 2
+accu:
+                .fill 2
+dest:
+                .fill 2
+temp:
+                .fill 2
+                .endsection
+
+;-------------------------------------------------------------------------
+
+                .section code
+                lda #22
+                jsr oswrch
+                lda #12         ;i.e., mode 4
+                jsr oswrch
+
+                sei
+                stz $fe20
+
+                sta $fe00
+                lda #$28
+                sta $fe01
+                lda #1
+                sta $fe00
+                ldy #32
+                sty $fe01
+
+                clc
+                dec a
+                tay
+set_palette_loop:
+                sta $fe21
+                adc #$11
+                bcc set_palette_loop
+
+                stz addr+0
+                stz addr+1
+loop:
+                lda accu+0
+                adc addr+0
+                sta accu+0
+                lda accu+1
+                adc addr+1
+                sta accu+1
+
+                lda addr+0
+                sta dest+0
+                lda addr+1
+                and #3
+                ora #$7c
+                sta dest+1
+
+                ; lda accu+0
+                ; sta temp+0
+                ; lda accu+1
+                ; sta temp+1
+
+                ; asl temp+0
+                ; rol temp+1
+                ; asl temp+0
+                ; rol temp+1
+
+                php
+                lda accu+1
+                asl a
+                asl a
+                sta (dest)
+                plp
+
+                inc addr+0
+                bne loop
+                inc addr+1
+                bra loop
+
+                .endsection
