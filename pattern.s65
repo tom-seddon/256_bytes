@@ -13,12 +13,14 @@
                 .section zp
 addr:
                 .fill 2
-accu:
-                .fill 2
-dest:
-                .fill 2
-temp:
-                .fill 2
+xc:
+                .fill 1
+yc:
+                .fill 1
+counter:
+                .fill 1
+pixel:
+                .fill 1
                 .endsection
 
 ;-------------------------------------------------------------------------
@@ -33,12 +35,15 @@ temp:
                 stz $fe20
 
                 sta $fe00
-                lda #$28
+                lda #$28        ;$7c00
                 sta $fe01
                 lda #1
                 sta $fe00
                 ldy #32
                 sty $fe01
+
+                ; lda #acccon.d
+                ; sta acccon
 
                 clc
                 dec a
@@ -48,43 +53,88 @@ set_palette_loop:
                 adc #$11
                 bcc set_palette_loop
 
-                stz addr+0
-                stz addr+1
-loop:
-                lda accu+0
-                adc addr+0
-                sta accu+0
-                lda accu+1
-                adc addr+1
-                sta accu+1
-
-                lda addr+0
-                sta dest+0
+                ; doesn't matter what the initial values of addr or
+                ; counter are, though the writing will start at an
+                ; arbitrary position on screen and the counter may or
+                ; may not increment first time round...
+fix_addr_msb:
                 lda addr+1
-                and #3
+                inc a
+                bpl +
+                
+                inc counter
+
+                pha
+                
+                ; hit top of screen - wait for vsync.
+;                 lda #2
+; wait_for_vsync_loop:
+;                 bit system_via.ifr
+;                 beq wait_for_vsync_loop
+;                 sta system_via.ifr
+                
+                ; lda acccon
+                ; eor #acccon.d|acccon.x
+                ; sta acccon
+                
+                pla
++
+                and #%00000011
                 ora #$7c
-                sta dest+1
+                sta addr+1
+loop:
+                
+                lda addr+1
+                sta yc
+                lda addr+0
+                sta xc
 
-                ; lda accu+0
-                ; sta temp+0
-                ; lda accu+1
-                ; sta temp+1
-
-                ; asl temp+0
-                ; rol temp+1
-                ; asl temp+0
-                ; rol temp+1
-
-                php
-                lda accu+1
+                ldx #3
+get_yc_loop:
                 asl a
-                asl a
-                sta (dest)
-                plp
+                rol yc
+                dex
+                bne get_yc_loop
+
+                ; high nybble of addr?1 is always %0111.
+                ; so C=1 at this point.
+
+                lda xc
+                clc
+                adc counter     ;extra +1 irrelevant
+                eor yc
+                and #8
+                lsr a
+                lsr a
+                lsr a
+                sta pixel
+
+                lsr xc
+                lsr yc
+                clc
+                lda counter
+                eor #$ff
+                adc xc
+                eor yc
+                and #2
+                ora pixel
+                tax
+                lda pixel_table,x
+                
+                sta (addr)
 
                 inc addr+0
-                bne loop
-                inc addr+1
+                beq fix_addr_msb
                 bra loop
 
+pixel_value: .function colour
+right=(
+                .endfunction 
+
+pixel_table:
+                .byte %00000000^$ff ;black
+                .byte %00111111^$ff ;white
+                .byte %00110000^$ff ;blue
+                .byte %00111111^$ff ;white
+                
                 .endsection
