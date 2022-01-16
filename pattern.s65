@@ -3,6 +3,13 @@
 
 ;-------------------------------------------------------------------------
 
+double_buffer=true
+                
+; doesn't actually seem to work :(
+vsync=false
+                
+;-------------------------------------------------------------------------
+
 *=$70
                 .dsection zp
 *=$1900
@@ -13,13 +20,15 @@
                 .section zp
 addr:
                 .fill 2
-xc:
-                .fill 1
+; xc:
+;                 .fill 1
 yc:
                 .fill 1
 counter:
                 .fill 1
 pixel:
+                .fill 1
+temp:
                 .fill 1
                 .endsection
 
@@ -42,8 +51,10 @@ pixel:
                 ldy #32
                 sty $fe01
 
-                ; lda #acccon.d
-                ; sta acccon
+                .if double_buffer
+                lda #acccon.d
+                sta acccon
+                .endif
 
                 clc
                 dec a
@@ -64,20 +75,28 @@ fix_addr_msb:
                 
                 inc counter
 
+                .if double_buffer||vsync
                 pha
-                
-                ; hit top of screen - wait for vsync.
-;                 lda #2
-; wait_for_vsync_loop:
-;                 bit system_via.ifr
-;                 beq wait_for_vsync_loop
-;                 sta system_via.ifr
-                
-                ; lda acccon
-                ; eor #acccon.d|acccon.x
-                ; sta acccon
-                
+                .endif
+
+                .if vsync
+                lda #2
+wait_for_vsync_loop:
+                bit system_via.ifr
+                beq wait_for_vsync_loop
+                sta system_via.ifr
+                .endif
+
+                .if double_buffer
+                lda acccon
+                eor #acccon.d|acccon.x
+                sta acccon
+                .endif
+
+                .if double_buffer||vsync
                 pla
+                .endif
+
 +
                 and #%00000011
                 ora #$7c
@@ -87,37 +106,42 @@ loop:
                 lda addr+1
                 sta yc
                 lda addr+0
-                sta xc
+                ;sta xc
 
-                ldx #3
-get_yc_loop:
                 asl a
                 rol yc
-                dex
-                bne get_yc_loop
+                asl a
+                rol yc
+                asl a
+                rol yc
 
-                ; high nybble of addr?1 is always %0111.
-                ; so C=1 at this point.
+                ; C=1 at this point - addr high nybble is always 7
 
-                lda xc
-                clc
-                adc counter     ;extra +1 irrelevant
+                lda counter
+                pha
+                adc addr+0      ;X coord
+                eor yc
+                and #4
+                sta temp
+
+                pla
+                asl a
+                pha
+                adc addr+0      ;X coord
                 eor yc
                 and #8
-                lsr a
-                lsr a
-                lsr a
-                sta pixel
+                ora temp
+                sta temp
 
-                lsr xc
-                lsr yc
-                clc
-                lda counter
-                eor #$ff
-                adc xc
+                pla
+                asl a
+                adc addr+0      ;X coord
                 eor yc
-                and #2
-                ora pixel
+                and #16
+                ora temp
+
+                lsr a
+                lsr a
                 tax
                 lda pixel_table,x
                 
@@ -127,14 +151,23 @@ get_yc_loop:
                 beq fix_addr_msb
                 bra loop
 
-pixel_value: .function colour
-right=(
-                .endfunction 
-
-pixel_table:
-                .byte %00000000^$ff ;black
-                .byte %00111111^$ff ;white
-                .byte %00110000^$ff ;blue
-                .byte %00111111^$ff ;white
+; 0000abcd
+; 0a0b0c0d
                 
+pixel_value: .function colour
+right=(colour&8)<<3|(colour&4)<<2|(colour&2)<<1|(colour&1)<<0
+                .endfunction (right<<1|right<<0)^$ff
+                
+pixel_table:
+                .for i=0,i<8,i+=1
+                .if (i&4)!=0
+                .byte pixel_value(7)
+                .elsif (i&2)!=0
+                .byte pixel_value(2)
+                .elsif (i&1)!=0
+                .byte pixel_value(1)
+                .else
+                .byte pixel_value(0)
+                .endif
+                .endfor
                 .endsection
