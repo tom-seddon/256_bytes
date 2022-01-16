@@ -30,15 +30,20 @@ pixel:
                 .fill 1
 temp:
                 .fill 1
+temp_counter:
+                .fill 1
                 .endsection
 
 ;-------------------------------------------------------------------------
 
                 .section code
+start:
                 lda #22
                 jsr oswrch
                 lda #12         ;i.e., mode 4
                 jsr oswrch
+
+                .logical *
 
                 sei
                 stz $fe20
@@ -69,35 +74,34 @@ set_palette_loop:
                 ; arbitrary position on screen and the counter may or
                 ; may not increment first time round...
 fix_addr_msb:
-                lda addr+1
+                inc addr+1
+                bpl got_addr_msb
+
+                lda counter
                 inc a
-                bpl +
-                
-                inc counter
+                tax
+                eor counter
+                stx counter
+                and #32
+                beq swap_buffers
 
-                .if double_buffer||vsync
-                pha
-                .endif
+                ; next frame...
+                ldx #layer0-start
+                jsr change
 
-                .if vsync
-                lda #2
-wait_for_vsync_loop:
-                bit system_via.ifr
-                beq wait_for_vsync_loop
-                sta system_via.ifr
-                .endif
+                ldx #layer1-start
+                jsr change
 
-                .if double_buffer
+                ldx #layer2-start
+                jsr change
+
+swap_buffers:
                 lda acccon
                 eor #acccon.d|acccon.x
                 sta acccon
-                .endif
 
-                .if double_buffer||vsync
-                pla
-                .endif
-
-+
+got_addr_msb:
+                lda addr+1
                 and #%00000011
                 ora #$7c
                 sta addr+1
@@ -118,29 +122,30 @@ loop:
                 ; C=1 at this point - addr high nybble is always 7
 
                 lda counter
-                pha
-                adc addr+0      ;X coord
-                eor yc
+                and #31
+                tax
+layer0:
+                jsr type0
                 and #4
                 sta temp
 
-                pla
-                asl a
-                pha
-                adc addr+0      ;X coord
-                eor yc
+                txa
+                lsr a
+                tax
+layer1:
+                jsr type1
                 and #8
                 ora temp
+                lsr a
                 sta temp
 
-                pla
-                asl a
-                adc addr+0      ;X coord
-                eor yc
-                and #16
+                txa
+                lsr a
+layer2:
+                jsr type2
+                and #8
                 ora temp
 
-                lsr a
                 lsr a
                 tax
                 lda pixel_table,x
@@ -150,6 +155,49 @@ loop:
                 inc addr+0
                 beq fix_addr_msb
                 bra loop
+
+change:
+                clc
+                lda start+1,x   ;code LSB
+                adc #8
+                cmp #types_end-start
+                bcc +
+                lda #type0-start
++
+                sta start+1,x
+                rts
+
+type0: .block
+                sec
+                sbc addr+0
+                sec
+                sbc yc
+                rts
+                nop
+                .endblock
+                .cerror size(type0)!=8,''
+
+type1: .block
+                clc
+                adc addr+0
+                sec
+                sbc yc
+                rts
+                nop
+                .endblock
+                .cerror size(type1)!=8,''
+
+type2: .block
+                clc
+                adc addr+0
+                eor yc
+                rts
+                nop
+                nop
+                .endblock
+                .cerror size(type2)!=8,''
+
+types_end:
 
 ; 0000abcd
 ; 0a0b0c0d
@@ -170,4 +218,6 @@ pixel_table:
                 .byte pixel_value(0)
                 .endif
                 .endfor
+
+                .endlogical
                 .endsection

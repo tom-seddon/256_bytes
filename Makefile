@@ -53,6 +53,7 @@ dist:
 	$(SHELLCMD) copy-file "$(TMP)/wobble_colours.ssd" "$(SSD)/"
 	$(SHELLCMD) copy-file "$(TMP)/wobble_colours_scroll.ssd" "$(SSD)/"
 	$(SHELLCMD) copy-file "$(TMP)/love_byte_2022.ssd" "$(SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/pattern.ssd" "$(SSD)/"
 
 ##########################################################################
 ##########################################################################
@@ -67,6 +68,7 @@ dist_and_upload:
 	$(MAKE) _github.io NAME=wobble_colours_scroll.ssd
 	$(MAKE) _github.io NAME=alias_sines.ssd
 	$(MAKE) _github.io NAME=love_byte_2022.ssd
+	$(MAKE) _github.io NAME=pattern.ssd
 	cd "$(GITHUB_IO)" && git push
 
 .PHONY:_github.io
