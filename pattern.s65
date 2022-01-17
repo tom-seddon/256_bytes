@@ -40,6 +40,8 @@ start:
                 lda #12         ;i.e., mode 4
                 jsr oswrch
 
+                ; (change to .logical 0 to assess the benefit of
+                ; moving to zero page)
                 .logical *
 
                 sei
@@ -73,6 +75,8 @@ set_palette_loop:
 fix_addr_msb:
                 inc addr+1
                 bpl got_addr_msb
+
+                ; TODO - could use top 6 bits of address instead?
 
                 lda counter
                 inc counter
@@ -115,16 +119,16 @@ loop:
                 rol yc          ;C=1
 
                 lda counter
-                tax
+                tay
                 sec
 layer0:
                 jsr type_codes+0*type_code_size
                 and #4
                 sta temp
 
-                txa
+                tya
                 lsr a
-                tax
+                tay
                 sec
 layer1:
                 jsr type_codes+1*type_code_size
@@ -133,7 +137,7 @@ layer1:
                 lsr a
                 sta temp
 
-                txa
+                tya
                 lsr a
                 sec
 layer2:
@@ -153,13 +157,17 @@ next_byte:
 
                 bra loop
 
+                ; TODO - push the layers code to the end of the page.
+                ; Can then check for overflow with bcc - no need for
+                ; cmp. (Or, alternatively: put them at the start, then
+                ; sbc#, then check for underflow.)
 change:
                 clc
                 lda start+1,x   ;code LSB
                 adc #type_code_size
                 cmp #types_end-start
                 bcc +
-                lda #type0-start
+                lda #type_codes-start
 +
                 sta start+1,x
                 rts
@@ -176,45 +184,50 @@ sn_write:
 type_code_size=6
 
 type_codes:                
-grid: .block
-                adc addr+0
-                ora yc
-                asl a
-                rts
-                .endblock
-                .cerror size(grid)!=type_code_size,''
-               
 type0: .block
-                sbc addr+0
-                sec
-                sbc yc
+                ; dots scroll west
+                adc addr+0
+                and yc
+                asl a
                 rts
                 .endblock
                 .cerror size(type0)!=type_code_size,''
-
-type3: .block
-                adc yc
-                ora addr+0
-                asl a
-                rts
-                .endblock
-                .cerror size(type3)!=type_code_size,''
-
+               
 type1: .block
-                adc addr+0
+                ; slash scroll east
+                sbc addr+0
                 sec
                 sbc yc
                 rts
                 .endblock
                 .cerror size(type1)!=type_code_size,''
 
-                ; this one must be the last one. it's 1 byte shorter.
 type2: .block
+                ; grid scroll north
+                adc yc
+                ora addr+0
+                asl a
+                rts
+                .endblock
+                .cerror size(type2)!=type_code_size,''
+
+type3: .block
+                ; backslash scroll west
                 adc addr+0
+                sec
+                sbc yc
+                rts
+                .endblock
+                .cerror size(type3)!=type_code_size,''
+
+                ; this one must be the last one. it's 1 byte shorter.
+type4: .block
+                ; chequerboard scroll east
+                sbc addr+0
                 eor yc
                 rts
                 .endblock
-                .cerror size(type2)!=type_code_size-1,''
+                .cerror size(type4)!=type_code_size-1,''
 
 types_end:
 
