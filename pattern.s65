@@ -106,27 +106,28 @@ loop:
                 sta yc
                 lda addr+0
 
+                ; addr high nybble is always 7 (%0111)
                 asl a
-                rol yc
+                rol yc          ;C=0
                 asl a
-                rol yc
+                rol yc          ;C=1
                 asl a
-                rol yc
-
-                ; C=1 at this point - addr high nybble is always 7
+                rol yc          ;C=1
 
                 lda counter
                 tax
+                sec
 layer0:
-                jsr type0
+                jsr type_codes+0*type_code_size
                 and #4
                 sta temp
 
                 txa
                 lsr a
                 tax
+                sec
 layer1:
-                jsr type1
+                jsr type_codes+1*type_code_size
                 and #8
                 ora temp
                 lsr a
@@ -134,8 +135,9 @@ layer1:
 
                 txa
                 lsr a
+                sec
 layer2:
-                jsr type2
+                jsr type_codes+2*type_code_size
                 and #8
                 ora temp
 
@@ -154,7 +156,7 @@ next_byte:
 change:
                 clc
                 lda start+1,x   ;code LSB
-                adc #8
+                adc #type_code_size
                 cmp #types_end-start
                 bcc +
                 lda #type0-start
@@ -171,56 +173,48 @@ sn_write:
 +
                 rts
 
-type0: .block
-                sec
-                sbc addr+0
-                sec
-                sbc yc
-                rts
-                nop
-                .endblock
-                .cerror size(type0)!=8,''
+type_code_size=6
 
-type1: .block
-                clc
-                adc addr+0
-                sec
-                sbc yc
-                rts
-                nop
-                .endblock
-                .cerror size(type1)!=8,''
-
-type2: .block
-                clc
-                adc addr+0
-                eor yc
-                rts
-                nop
-                nop
-                .endblock
-                .cerror size(type2)!=8,''
-
-type3: .block
-                clc
-                adc yc
-                ora addr+0
-                asl a
-                rts
-                nop
-                .endblock
-                .cerror size(type3)!=8,''
-
-type4: .block
-                clc
+type_codes:                
+grid: .block
                 adc addr+0
                 ora yc
                 asl a
                 rts
-                nop
                 .endblock
-                .cerror size(type4)!=8,''
+                .cerror size(grid)!=type_code_size,''
                
+type0: .block
+                sbc addr+0
+                sec
+                sbc yc
+                rts
+                .endblock
+                .cerror size(type0)!=type_code_size,''
+
+type3: .block
+                adc yc
+                ora addr+0
+                asl a
+                rts
+                .endblock
+                .cerror size(type3)!=type_code_size,''
+
+type1: .block
+                adc addr+0
+                sec
+                sbc yc
+                rts
+                .endblock
+                .cerror size(type1)!=type_code_size,''
+
+                ; this one must be the last one. it's 1 byte shorter.
+type2: .block
+                adc addr+0
+                eor yc
+                rts
+                .endblock
+                .cerror size(type2)!=type_code_size-1,''
 
 types_end:
 
@@ -234,11 +228,11 @@ right=(colour&8)<<3|(colour&4)<<2|(colour&2)<<1|(colour&1)<<0
 pixel_table:
                 .for i=0,i<8,i+=1
                 .if (i&4)!=0
-                .byte pixel_value(7)
-                .elsif (i&2)!=0
                 .byte pixel_value(2)
-                .elsif (i&1)!=0
+                .elsif (i&2)!=0
                 .byte pixel_value(1)
+                .elsif (i&1)!=0
+                .byte pixel_value(4)
                 .else
                 .byte pixel_value(0)
                 .endif
