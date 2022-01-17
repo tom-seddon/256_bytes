@@ -33,12 +33,13 @@ temp_counter:
 start:
                 lda #22
                 jsr oswrch
-                lda #12         ;i.e., mode 4
+                lda #13         ;i.e., mode 5
                 jsr oswrch
 
                 sei
                 stz $fe20
 
+                dec a
                 sta $fe00
                 lda #$28        ;$7c00
                 sta $fe01
@@ -49,8 +50,9 @@ start:
                 lda #%10000000
                 jsr sn_write
 
-                lda #%00111111
+                lda #3
                 jsr sn_write
+                sta $fe21       ;colour 0 = blue
 
                 lda #1
                 sta $fe00
@@ -58,13 +60,6 @@ start:
                 sty $fe01
 
                 sta acccon      ;D=1 - display shadow, map main RAM
-
-                clc
-                dec a
-set_palette_loop:
-                sta $fe21
-                adc #$11
-                bcc set_palette_loop
 
                 ; doesn't matter what the initial values of addr or
                 ; counter are, though the writing will start at an
@@ -180,23 +175,20 @@ sn_write:
 +
                 rts
 
-; 0000abcd
-; 0a0b0c0d
-                
 pixel_value: .function colour
 right=(colour&8)<<3|(colour&4)<<2|(colour&2)<<1|(colour&1)<<0
-                .endfunction (right<<1|right<<0)^$ff
+                .endfunction (right<<1|right<<0)
                 
 pixel_table:
                 .for i=0,i<8,i+=1
                 .if (i&4)!=0
-                .byte pixel_value(3)
+                .byte pixel_value(8) ;yellow
                 .elsif (i&2)!=0
-                .byte pixel_value(1)
+                .byte pixel_value(2) ;red
                 .elsif (i&1)!=0
-                .byte pixel_value(4)
+                .byte pixel_value(0) ;blue
                 .else
-                .byte pixel_value(0)
+                .byte pixel_value(1) ;black
                 .endif
                 .endfor
                 
