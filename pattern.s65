@@ -3,10 +3,6 @@
 
 ;-------------------------------------------------------------------------
 
-double_buffer=true
-                
-;-------------------------------------------------------------------------
-
 *=$70
                 .dsection zp
 *=$1900
@@ -40,10 +36,6 @@ start:
                 lda #12         ;i.e., mode 4
                 jsr oswrch
 
-                ; (change to .logical 0 to assess the benefit of
-                ; moving to zero page)
-                .logical *
-
                 sei
                 stz $fe20
 
@@ -55,10 +47,7 @@ start:
                 ldy #32
                 sty $fe01
 
-                .if double_buffer
-                lda #acccon.d
-                sta acccon
-                .endif
+                sta acccon      ;D=1 - display shadow, map main RAM
 
                 clc
                 dec a
@@ -119,16 +108,14 @@ loop:
                 rol yc          ;C=1
 
                 lda counter
-                tay
-                sec
 layer0:
                 jsr type_codes+0*type_code_size
                 and #4
                 sta temp
 
-                tya
+                lda counter
                 lsr a
-                tay
+                pha
                 sec
 layer1:
                 jsr type_codes+1*type_code_size
@@ -137,7 +124,7 @@ layer1:
                 lsr a
                 sta temp
 
-                tya
+                pla
                 lsr a
                 sec
 layer2:
@@ -157,15 +144,10 @@ next_byte:
 
                 bra loop
 
-                ; TODO - push the layers code to the end of the page.
-                ; Can then check for overflow with bcc - no need for
-                ; cmp. (Or, alternatively: put them at the start, then
-                ; sbc#, then check for underflow.)
 change:
                 clc
                 lda start+1,x   ;code LSB
                 adc #type_code_size
-                cmp #types_end-start
                 bcc +
                 lda #type_codes-start
 +
@@ -180,6 +162,28 @@ sn_write:
                 sty system_via.orb
 +
                 rts
+
+; 0000abcd
+; 0a0b0c0d
+                
+pixel_value: .function colour
+right=(colour&8)<<3|(colour&4)<<2|(colour&2)<<1|(colour&1)<<0
+                .endfunction (right<<1|right<<0)^$ff
+                
+pixel_table:
+                .for i=0,i<8,i+=1
+                .if (i&4)!=0
+                .byte pixel_value(2)
+                .elsif (i&2)!=0
+                .byte pixel_value(1)
+                .elsif (i&1)!=0
+                .byte pixel_value(4)
+                .else
+                .byte pixel_value(0)
+                .endif
+                .endfor
+                
+                .fill 256-(types_end-type_codes)-(*-start)
 
 type_code_size=6
 
@@ -230,26 +234,4 @@ type4: .block
                 .cerror size(type4)!=type_code_size-1,''
 
 types_end:
-
-; 0000abcd
-; 0a0b0c0d
-                
-pixel_value: .function colour
-right=(colour&8)<<3|(colour&4)<<2|(colour&2)<<1|(colour&1)<<0
-                .endfunction (right<<1|right<<0)^$ff
-                
-pixel_table:
-                .for i=0,i<8,i+=1
-                .if (i&4)!=0
-                .byte pixel_value(2)
-                .elsif (i&2)!=0
-                .byte pixel_value(1)
-                .elsif (i&1)!=0
-                .byte pixel_value(4)
-                .else
-                .byte pixel_value(0)
-                .endif
-                .endfor
-
-                .endlogical
                 .endsection
