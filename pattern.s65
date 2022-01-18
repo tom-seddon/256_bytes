@@ -29,6 +29,10 @@ temp_counter:
 
 ;-------------------------------------------------------------------------
 
+start_freq=1023
+                
+;-------------------------------------------------------------------------
+
                 .section code
 start:
                 ; best to start with counter set to 0, to ensure the
@@ -37,36 +41,29 @@ start:
                 ;
                 ; the initial value of addr isn't so important.
                 stz counter
-                
-                lda #22
-                jsr oswrch
-                lda #13         ;i.e., mode 5
-                jsr oswrch
 
+init_text_offset=256-init_text_size
+                ldx #init_text_offset
+init_loop:
+                lda init_text-init_text_offset,x
+                jsr oswrch
+                inx
+                bne init_loop
+                
                 sei
                 stz $fe20
-
-                dec a
-                sta $fe00
-                lda #$28        ;$7c00
-                sta $fe01
+                sta $fe21
+                lsr a           ;A=1
+                sta acccon      ;D=1 - display shadow, map main RAM
 
                 ; set some random frequency on tone 3
                 ;
                 ; (best to reuse tone 3, as it's the bootup beep)
-                lda #%10000000
+                lda #$80|start_freq&15
                 jsr sn_write
-
-                lda #3
-                sta $fe21       ;colour 0 = blue
+                lda #start_freq>>4
                 jsr sn_write
-
-                lda #1
-                sta $fe00
-                ldy #32
-                sty $fe01
-
-                sta acccon      ;D=1 - display shadow, map main RAM
+                
 
 fix_addr_msb:
                 inc addr+1
@@ -120,7 +117,7 @@ loop:
 
                 lda counter
 layer0:
-                jsr type_codes+0*type_code_size
+                jsr type_codes+1*type_code_size
                 and #4
                 sta temp
 
@@ -129,7 +126,7 @@ layer0:
                 pha
                 sec
 layer1:
-                jsr type_codes+1*type_code_size
+                jsr type_codes+2*type_code_size
                 and #8
                 ora temp
                 lsr a
@@ -139,7 +136,7 @@ layer1:
                 lsr a
                 sec
 layer2:
-                jsr type_codes+2*type_code_size
+                jsr type_codes+3*type_code_size
                 and #8
                 ora temp
 
@@ -171,9 +168,9 @@ change:
                 lda #type_codes-start
 +
                 sta start+1,x
-music1:
-                eor #$0f
-                and counter
+music2:
+                ora counter
+                lsr a
                 rts
 
 sn_write:
@@ -201,17 +198,35 @@ pixel_table:
                 .byte pixel_value(1) ;black
                 .endif
                 .endfor
-
-music2:
-                ora counter
-                lsr a
-                rts
                 
-                .fill 256-(types_end-type_codes)-(*-start)
-
+                .fill 256-(types_end-fill_end)-(*-start)
+fill_end:
+                
 type_code_size=6
 
+init_text:
+                .byte 22,5      ;mode 5
+                .byte 23,0,12,40 ;R12=$28
+                ; 6 spare bytes - end of VDU 23
+music1:
+                eor #$0f
+                and counter
+                rts
+                .byte 0         ;spare
+                .cerror *-music1!=6,""
+; init_text_end=*+10
+init_text_size=*+10-init_text
+                .byte 23,0,1,32 ;R1=32
+                ; 6 dummy bytes - end of VDU 23
 type_codes:                
+type4: .block
+                ; chequerboard scroll east
+                sbc addr+0
+                eor yc
+                rts
+                .byte 3         ;palette value - colour 0 = blue
+                .endblock
+                .cerror size(type4)!=type_code_size,''
 type0: .block
                 ; dots scroll west
                 adc addr+0
@@ -247,15 +262,5 @@ type3: .block
                 rts
                 .endblock
                 .cerror size(type3)!=type_code_size,''
-
-                ; this one must be the last one. it's 1 byte shorter.
-type4: .block
-                ; chequerboard scroll east
-                sbc addr+0
-                eor yc
-                rts
-                .endblock
-                .cerror size(type4)!=type_code_size-1,''
-
 types_end:
                 .endsection
