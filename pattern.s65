@@ -69,27 +69,7 @@ fix_addr_msb:
                 inc addr+1
                 bpl got_addr_msb
 
-                ; TODO - could use top 6 bits of address instead?
-
-                lda counter
-                inc counter
-                eor counter
-                and #32
-                beq swap_buffers
-
-                ; next frame...
-                ldx #layer0-start
-                jsr change
-
-                ldx #layer1-start
-                jsr change
-
-                ldx #layer2-start
-                jsr change
-
-                lda call_music+1
-                eor #<(music1^music2)
-                sta call_music+1
+                jsr update_sequence
 
 swap_buffers:
                 lda acccon
@@ -101,8 +81,8 @@ got_addr_msb:
                 and #%00000011
                 ora #$7c
                 sta addr+1
-loop:
-                
+
+do_pixel:                
                 lda addr+1
                 sta yc
                 lda addr+0
@@ -158,9 +138,30 @@ next_byte:
                 inc addr+0
                 beq fix_addr_msb
 
-                bra loop
+                bra do_pixel
 
-change:
+update_sequence:
+                ; TODO - could use top 6 bits of address instead?
+
+                lda counter
+                inc counter
+                eor counter
+                and #32
+                beq done
+
+                lda call_music+1
+                eor #<(music1^music2)
+                sta call_music+1
+                
+                ; next frame...
+                ldx #layer0-start
+                jsr change_layer
+
+                ldx #layer1-start
+                jsr change_layer
+
+                ldx #layer2-start
+change_layer:
                 clc
                 lda start+1,x   ;code LSB
                 adc #type_code_size
@@ -171,6 +172,7 @@ change:
 music2:
                 ora counter
                 lsr a
+done:
                 rts
 
 sn_write:
