@@ -69,7 +69,7 @@ fix_addr_msb:
                 inc addr+1
                 bpl got_addr_msb
 
-                jsr update_sequence
+                jsr next_frame
 
 swap_buffers:
                 lda acccon
@@ -121,6 +121,8 @@ layer2:
                 ora temp
 
                 lsr a
+pixel_mask=*+1
+                and #0
                 tax
 
                 asl a
@@ -131,7 +133,6 @@ call_music:
                 jsr sn_write
                 
                 lda pixel_table,x
-                
                 sta (addr)
 
 next_byte:
@@ -140,7 +141,7 @@ next_byte:
 
                 bra do_pixel
 
-update_sequence:
+next_frame:
                 ; TODO - could use top 6 bits of address instead?
 
                 lda counter
@@ -148,6 +149,10 @@ update_sequence:
                 eor counter
                 and #32
                 beq done
+
+update_sequence:
+                sec
+                rol pixel_mask
 
                 lda call_music+1
                 eor #<(music1^music2)
