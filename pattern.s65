@@ -29,7 +29,7 @@ temp_counter:
 
 ;-------------------------------------------------------------------------
 
-start_freq=1023
+start_freq=0;1023
                 
 ;-------------------------------------------------------------------------
 
@@ -53,28 +53,22 @@ init_loop:
                 sei
                 stz $fe20
                 sta $fe21
-                lsr a           ;A=1
+                lsr a           ;A=1, C=1
                 sta acccon      ;D=1 - display shadow, map main RAM
 
                 ; set some random frequency on tone 3
                 ;
                 ; (best to reuse tone 3, as it's the bootup beep)
-                lda #$80|start_freq&15
+                ror a           ;A=$80
                 jsr sn_write
-                lda #start_freq>>4
+                lsr a           ;A=$40
                 jsr sn_write
-                
 
 fix_addr_msb:
                 inc addr+1
                 bpl got_addr_msb
 
                 jsr next_frame
-
-swap_buffers:
-                lda acccon
-                eor #acccon.d|acccon.x
-                sta acccon
 
 got_addr_msb:
                 lda addr+1
@@ -103,7 +97,7 @@ layer0:
 
                 lda counter
                 lsr a
-                pha
+                tax
                 sec
 layer1:
                 jsr type_codes+2*type_code_size
@@ -112,15 +106,15 @@ layer1:
                 lsr a
                 sta temp
 
-                pla
+                txa
                 lsr a
                 sec
 layer2:
                 jsr type_codes+3*type_code_size
                 and #8
                 ora temp
-
                 lsr a
+                
 pixel_mask=*+1
                 and #0
                 tax
@@ -144,10 +138,18 @@ next_byte:
 next_frame:
                 ; TODO - could use top 6 bits of address instead?
 
+                lda acccon
+                eor #acccon.d|acccon.x
+                sta acccon
+
                 lda counter
                 inc counter
+                bne +
+                ldx #$18        ;CLC
+                stx update_sequence
++
                 eor counter
-                and #32
+                bit #8
                 beq done
 
 update_sequence:
@@ -176,7 +178,7 @@ change_layer:
                 sta start+1,x
 music2:
                 ora counter
-                lsr a
+                ;lsr a
 done:
                 rts
 

@@ -4,3 +4,4 @@
 4.256 diff=bbcbasic
 $.TEST diff=bbcbasic
 $.SINES diff=bbcbasic
+$.SINESTABLE diff=bbcbasic
