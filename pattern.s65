@@ -31,6 +31,13 @@ temp_counter:
 
                 .section code
 start:
+                ; best to start with counter set to 0, to ensure the
+                ; first bit of music lasts for a decent amount of
+                ; time.
+                ;
+                ; the initial value of addr isn't so important.
+                stz counter
+                
                 lda #22
                 jsr oswrch
                 lda #13         ;i.e., mode 5
@@ -51,8 +58,8 @@ start:
                 jsr sn_write
 
                 lda #3
-                jsr sn_write
                 sta $fe21       ;colour 0 = blue
+                jsr sn_write
 
                 lda #1
                 sta $fe00
@@ -61,10 +68,6 @@ start:
 
                 sta acccon      ;D=1 - display shadow, map main RAM
 
-                ; doesn't matter what the initial values of addr or
-                ; counter are, though the writing will start at an
-                ; arbitrary position on screen and the counter may or
-                ; may not increment first time round...
 fix_addr_msb:
                 inc addr+1
                 bpl got_addr_msb
@@ -86,6 +89,10 @@ fix_addr_msb:
 
                 ldx #layer2-start
                 jsr change
+
+                lda call_music+1
+                eor #<(music1^music2)
+                sta call_music+1
 
 swap_buffers:
                 lda acccon
@@ -140,8 +147,8 @@ layer2:
                 tax
 
                 asl a
-                eor #$0f
-                and counter
+call_music:
+                jsr music1
                 and #$0f
                 ora #%10010000  ;tone 3 attenuation
                 jsr sn_write
@@ -164,6 +171,9 @@ change:
                 lda #type_codes-start
 +
                 sta start+1,x
+music1:
+                eor #$0f
+                and counter
                 rts
 
 sn_write:
@@ -191,6 +201,11 @@ pixel_table:
                 .byte pixel_value(1) ;black
                 .endif
                 .endfor
+
+music2:
+                ora counter
+                lsr a
+                rts
                 
                 .fill 256-(types_end-type_codes)-(*-start)
 

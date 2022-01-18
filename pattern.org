@@ -1,0 +1,14 @@
+decent "music"
+
+#+begin_src 6502
+		  asl a
+		  eor #$0f
+		  ;asl a
+		  asl a
+		  eor counter
+		  lsr a
+		  ;lsr a
+		  and #$0f
+		  ora #%10010000  ;tone 3 attenuation
+		  jsr sn_write
+#+end_src
