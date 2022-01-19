@@ -53,13 +53,11 @@ init_loop:
                 sei
                 stz $fe20
                 sta $fe21
-                lsr a           ;A=1, C=1
-                sta acccon      ;D=1 - display shadow, map main RAM
 
                 ; set some random frequency on tone 3
                 ;
                 ; (best to reuse tone 3, as it's the bootup beep)
-                ror a           ;A=$80
+                lda #$80
                 jsr sn_write
                 lsr a           ;A=$40
                 jsr sn_write
@@ -214,7 +212,7 @@ fill_end:
 type_code_size=6
 
 init_text:
-                .byte 22,5      ;mode 5
+                .byte 22,133     ;shadow mode 5
                 .byte 23,0,12,40 ;R12=$28
                 ; 6 spare bytes - end of VDU 23
 music1:
