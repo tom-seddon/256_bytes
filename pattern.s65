@@ -183,10 +183,10 @@ done:
 sn_write:
                 sta system_via.ora_no_handshake
                 stz system_via.orb
-                jsr +
+                pha
+                pla
                 ldy #8
                 sty system_via.orb
-+
                 rts
 
 pixel_value: .function colour
