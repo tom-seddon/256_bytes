@@ -13,17 +13,11 @@
                 .section zp
 addr:
                 .fill 2
-; xc:
-;                 .fill 1
 yc:
                 .fill 1
 counter:
                 .fill 1
-pixel:
-                .fill 1
 temp:
-                .fill 1
-temp_counter:
                 .fill 1
                 .endsection
 
@@ -168,17 +162,18 @@ change_layer:
                 clc
                 lda start+3,x   ;code LSB
                 adc #type_code_size
-                bcc +                 ;90 02
+                bcc got_layer_lsb     ;90 02
                 lda #type_codes-start ;a9 e2
-+
-                sta start+3,x
+got_layer_lsb:
+                sta start+3,x   ;LSB of address must be a 3.
 music1:
                 eor #$0f
                 and counter
 done:
                 rts
 
-init_text_begin=*-7          
+init_text_begin=*-7
+                .cerror init_text_begin!=got_layer_lsb+1,''
                 .byte 32
                 .byte 1
                 .byte 0
