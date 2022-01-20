@@ -29,10 +29,6 @@ temp_counter:
 
 ;-------------------------------------------------------------------------
 
-start_freq=0;1023
-                
-;-------------------------------------------------------------------------
-
                 .section code
 start:
                 ; best to start with counter set to 0, to ensure the
@@ -140,15 +136,14 @@ next_frame:
                 eor #acccon.d|acccon.x
                 sta acccon
 
-                lda counter
                 inc counter
                 bne +
                 ldx #$18        ;CLC
                 stx update_sequence
 +
-                eor counter
-                bit #8
-                beq done
+                lda counter
+                bit #7
+                bne done
 
 update_sequence:
                 sec
