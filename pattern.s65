@@ -32,23 +32,23 @@ start:
                 ; the initial value of addr isn't so important.
                 stz counter
 
-                ldx #init_text_end-init_text_begin
+                ldx #init_text_end-init_text_begin-1
 init_loop:
-                lda init_text_begin-1,x
+                lda init_text_begin,x
                 jsr oswrch
                 dex
-                bne init_loop
-                
-                sei
-                stz $fe20
-                sta $fe21
+                bpl init_loop
 
-                ; set some random frequency on tone 3
-                ;
-                ; (best to reuse tone 3, as it's the bootup beep)
-                lda #$80
+                sei
+
+                stx $fe43
+
+                ; ; set some random frequency on tone 3
+                ; ;
+                ; ; (best to reuse tone 3, as it's the bootup beep)
+                lda #$8f
                 jsr sn_write
-                lsr a           ;A=$40
+                lda #$3f
                 jsr sn_write
 
 fix_addr_msb:
@@ -106,13 +106,17 @@ pixel_mask=*+1
                 and #0
                 tay
 
-                asl a
+                ; bit addr+0
+                ; bne write_pixel
+
+                ;asl a
 call_music:
                 jsr music1
                 and #$0f
                 ora #%10010000  ;tone 3 attenuation
                 jsr sn_write
-                
+
+write_pixel:
                 lda pixel_table,y
                 sta (addr)
 
@@ -128,56 +132,69 @@ next_frame:
                 lda acccon
                 eor #acccon.d|acccon.x
                 sta acccon
-
+                                
                 inc counter
                 bne +
                 ldx #$18        ;CLC
-                stx update_sequence
+                stx next_sequence
 +
+
+update_music:
+                lda counter
+                bit #3
+                bne update_sequence
+
+next_music:
+                lda call_music+1
+                eor #<(music1^music2)
+                sta call_music+1
+                
+update_sequence:
                 lda counter
                 bit #7
                 bne done
 
-update_sequence:
+next_sequence:
                 sec
                 rol pixel_mask
 
-                lda call_music+1
-                eor #<(music1^music2)
-                sta call_music+1
-
-                ; all are offset so that the last char in the
-                ; init string can be a 3. this is then reused to set
-                ; up the palette.
-
                 ; next frame...
-                ldx #layer0+1-(start+3)
+                ldx #layer0-start
                 jsr change_layer
 
-                ldx #layer1+1-(start+3)
+                ldx #layer1-start
                 jsr change_layer
 
-                ldx #layer2+1-(start+3)
+                ldx #layer2-start
 change_layer:
                 clc
-                lda start+3,x   ;code LSB
+                lda start+1,x   ;code LSB
                 adc #type_code_size
                 bcc got_layer_lsb     ;90 02
                 lda #type_codes-start ;a9 e2
 got_layer_lsb:
-                sta start+3,x   ;LSB of address must be a 3.
-music1:
-                eor #$0f
-                and counter
-done:
-                rts
+                sta start+1,x
 
-init_text_begin=*-7
-                .cerror init_text_begin!=got_layer_lsb+1,''
+music1:
+                eor #$0f        ;4 5
+                and counter     ;2 3
+done:
+                rts             ;1
+
+init_text_begin=*-6
+                ;.cerror init_text_begin!=update_acccon,''
+                ; 6 remaining VDU23 bytes above
                 .byte 32
                 .byte 1
                 .byte 0
                 .byte 23
+music2:
+                eor #$0f;adc counter
+                rts
+                ; 3 remaining VDU19 bytes above
+                .byte 4
+                .byte 3
+                .byte 19
 sn_write:
                 sta system_via.ora_no_handshake
                 stz system_via.orb
@@ -185,29 +202,28 @@ sn_write:
                 inx             ;e8        R12 value = $28 (6-bit reg)
                 tsb $1700       ;0c 00 17  23,0,12 - set CRTC R12
                 sta $16         ;85 16     22,135 - shadow mode 5
+                ;ora $16         ;05 16     22,5 - non-shadow mode 5
 init_text_end:
                 ldx #8
+                jsr +
                 stx system_via.orb
++
                 rts
 
-music2:
-                ora counter
-                rts
-                
 pixel_value: .function colour
-right=(colour&8)<<3|(colour&4)<<2|(colour&2)<<1|(colour&1)<<0
-                .endfunction (right<<1|right<<0)
+right=(colour&2)<<3|(colour&1)<<0
+                .endfunction right<<3|right<<2|right<<1|right<<0
                 
 pixel_table:
                 .for i=0,i<8,i+=1
                 .if (i&4)!=0
-                .byte pixel_value(8) ;yellow
+                .byte pixel_value(2) ;yellow
                 .elsif (i&2)!=0
-                .byte pixel_value(2) ;red
+                .byte pixel_value(1) ;red
                 .elsif (i&1)!=0
-                .byte pixel_value(0) ;blue
+                .byte pixel_value(3) ;blue
                 .else
-                .byte pixel_value(1) ;black
+                .byte pixel_value(0) ;black
                 .endif
                 .endfor
                 
@@ -217,6 +233,15 @@ fill_end:
 type_code_size=6
                 
 type_codes:                
+type2: .block
+                ; dots scroll north
+                adc yc
+                and addr+0
+                asl a
+                rts
+                .endblock
+                .cerror size(type2)!=type_code_size,''
+
 type4: .block
                 ; chequerboard scroll east
                 sbc addr+0
@@ -242,15 +267,6 @@ type1: .block
                 rts
                 .endblock
                 .cerror size(type1)!=type_code_size,''
-
-type2: .block
-                ; grid scroll north
-                adc yc
-                ora addr+0
-                asl a
-                rts
-                .endblock
-                .cerror size(type2)!=type_code_size,''
 
 type3: .block
                 ; backslash scroll west
