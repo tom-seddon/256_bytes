@@ -261,6 +261,15 @@ type0: .block
                 .endblock
                 .cerror size(type0)!=type_code_size,''
                
+type5: .block
+                ; checquerboard scroll north
+                adc yc
+                eor saddr+0
+                rts
+                nop             ;maddening spare byte
+                .endblock
+                .cerror size(type5)!=type_code_size,''
+                
 type1: .block
                 ; slash scroll east
                 sbc saddr+0
@@ -278,6 +287,7 @@ type3: .block
                 rts
                 .endblock
                 .cerror size(type3)!=type_code_size,''
+
 types_end:
                 .endsection
 
