@@ -75,3 +75,17 @@ dist_and_upload:
 _github.io:
 	cp "$(TMP)/$(NAME)" "$(GITHUB_IO)/"
 	cd "$(GITHUB_IO)" && git add "$(NAME)" && git commit --allow-empty -m "Add/update $(NAME)." "$(NAME)"
+
+##########################################################################
+##########################################################################
+
+# for me, on my laptop
+.PHONY:tom_laptop
+tom_laptop:
+	$(MAKE) build
+	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=pattern
+
+.PHONY:b2
+b2:
+	curl -G 'http://localhost:48075/reset/b2' --data-urlencode "config=$(CONFIG)"
+	curl -H 'Content-Type:application/binary' --upload-file '$(TMP)/$(SSD).ssd' 'http://localhost:48075/run/b2?name=$(SSD).ssd'
