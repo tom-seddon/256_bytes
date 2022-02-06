@@ -113,7 +113,7 @@ pixel_mask=*+1
 call_music:
                 jsr music1
                 and #$0f
-                ora #%10010000  ;tone 3 attenuation
+                eor #%10011111  ;tone 3 attenuation, and invert volume
                 jsr sn_write
 
 write_pixel:
@@ -134,14 +134,14 @@ next_frame:
                 sta acccon
                                 
                 inc counter
-                bne +
-                ldx #$18        ;CLC
-                stx next_sequence
-+
+;                 bne +
+;                 ldx #$18        ;CLC
+;                 stx next_sequence
+; +
 
 update_music:
                 lda counter
-                bit #3
+                bit #15
                 bne update_sequence
 
 next_music:
@@ -170,16 +170,15 @@ change_layer:
                 clc
                 lda start+1,x   ;code LSB
                 adc #type_code_size
-                bcc got_layer_lsb     ;90 02
-                lda #type_codes-start ;a9 e2
+                bcc got_layer_lsb
+                lda #type_codes-start
 got_layer_lsb:
                 sta start+1,x
 
 music1:
-                eor #$0f        ;4 5
-                and counter     ;2 3
+                adc counter
 done:
-                rts             ;1
+                rts
 
 init_text_begin=*-6
                 ;.cerror init_text_begin!=update_acccon,''
@@ -189,8 +188,10 @@ init_text_begin=*-6
                 .byte 0
                 .byte 23
 music2:
-                eor #$0f;adc counter
+                ;adc counter
+                eor counter
                 rts
+                .cerror *-music2!=3,''
                 ; 3 remaining VDU19 bytes above
                 .byte 4
                 .byte 3
@@ -226,7 +227,8 @@ pixel_table:
                 .byte pixel_value(0) ;black
                 .endif
                 .endfor
-                
+
+fill_start:
                 .fill 256-(types_end-fill_end)-(*-start)
 fill_end:
                 
@@ -247,7 +249,7 @@ type4: .block
                 sbc saddr+0
                 eor yc
                 rts
-                .byte 3         ;palette value - colour 0 = blue
+                nop             ;maddening spare byte
                 .endblock
                 .cerror size(type4)!=type_code_size,''
 type0: .block
@@ -278,3 +280,5 @@ type3: .block
                 .cerror size(type3)!=type_code_size,''
 types_end:
                 .endsection
+
+                .cwarn fill_end-fill_start!=0,format("Spare space: %d (0x%x)",fill_end-fill_start,fill_end-fill_start)

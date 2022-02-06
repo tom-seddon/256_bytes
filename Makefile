@@ -85,6 +85,7 @@ tom_laptop:
 	$(MAKE) build
 	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=pattern
 
+
 .PHONY:b2
 b2:
 	curl -G 'http://localhost:48075/reset/b2' --data-urlencode "config=$(CONFIG)"
