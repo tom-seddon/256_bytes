@@ -11,7 +11,7 @@
 ;-------------------------------------------------------------------------
 
                 .section zp
-addr:
+saddr:
                 .fill 2
 yc:
                 .fill 1
@@ -29,7 +29,7 @@ start:
                 ; first bit of music lasts for a decent amount of
                 ; time.
                 ;
-                ; the initial value of addr isn't so important.
+                ; the initial value of saddr isn't so important.
                 stz counter
 
                 ldx #init_text_end-init_text_begin-1
@@ -52,23 +52,23 @@ init_loop:
                 jsr sn_write
 
 fix_addr_msb:
-                inc addr+1
+                inc saddr+1
                 bpl got_addr_msb
 
                 jsr next_frame
 
 got_addr_msb:
-                lda addr+1
+                lda saddr+1
                 and #%00000011
                 ora #$7c
-                sta addr+1
+                sta saddr+1
 
 do_pixel:                
-                lda addr+1
+                lda saddr+1
                 sta yc
-                lda addr+0
+                lda saddr+0
 
-                ; addr high nybble is always 7 (%0111)
+                ; saddr high nybble is always 7 (%0111)
                 asl a
                 rol yc          ;C=0
                 asl a
@@ -106,7 +106,7 @@ pixel_mask=*+1
                 and #0
                 tay
 
-                ; bit addr+0
+                ; bit saddr+0
                 ; bne write_pixel
 
                 ;asl a
@@ -118,10 +118,10 @@ call_music:
 
 write_pixel:
                 lda pixel_table,y
-                sta (addr)
+                sta (saddr)
 
 next_byte:
-                inc addr+0
+                inc saddr+0
                 beq fix_addr_msb
 
                 bra do_pixel
@@ -236,7 +236,7 @@ type_codes:
 type2: .block
                 ; dots scroll north
                 adc yc
-                and addr+0
+                and saddr+0
                 asl a
                 rts
                 .endblock
@@ -244,7 +244,7 @@ type2: .block
 
 type4: .block
                 ; chequerboard scroll east
-                sbc addr+0
+                sbc saddr+0
                 eor yc
                 rts
                 .byte 3         ;palette value - colour 0 = blue
@@ -252,7 +252,7 @@ type4: .block
                 .cerror size(type4)!=type_code_size,''
 type0: .block
                 ; dots scroll west
-                adc addr+0
+                adc saddr+0
                 and yc
                 asl a
                 rts
@@ -261,7 +261,7 @@ type0: .block
                
 type1: .block
                 ; slash scroll east
-                sbc addr+0
+                sbc saddr+0
                 sec
                 sbc yc
                 rts
@@ -270,7 +270,7 @@ type1: .block
 
 type3: .block
                 ; backslash scroll west
-                adc addr+0
+                adc saddr+0
                 sec
                 sbc yc
                 rts
