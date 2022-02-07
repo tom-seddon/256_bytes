@@ -113,7 +113,7 @@ pixel_mask=*+1
 call_music:
                 jsr music1
                 and #$0f
-                eor #%10011111  ;tone 3 attenuation, and invert volume
+                ora #%10010000  ;tone 3 attenuation
                 jsr sn_write
 
 write_pixel:
@@ -134,14 +134,14 @@ next_frame:
                 sta acccon
                                 
                 inc counter
-;                 bne +
-;                 ldx #$18        ;CLC
-;                 stx next_sequence
-; +
+                bne +
+                ldx #$18        ;CLC
+                stx next_sequence
++
 
 update_music:
                 lda counter
-                bit #15
+                bit #3
                 bne update_sequence
 
 next_music:
@@ -170,15 +170,16 @@ change_layer:
                 clc
                 lda start+1,x   ;code LSB
                 adc #type_code_size
-                bcc got_layer_lsb
-                lda #type_codes-start
+                bcc got_layer_lsb     ;90 02
+                lda #type_codes-start ;a9 e2
 got_layer_lsb:
                 sta start+1,x
 
 music1:
-                adc counter
+                eor #$0f        ;4 5
+                and counter     ;2 3
 done:
-                rts
+                rts             ;1
 
 init_text_begin=*-6
                 ;.cerror init_text_begin!=update_acccon,''
@@ -188,10 +189,8 @@ init_text_begin=*-6
                 .byte 0
                 .byte 23
 music2:
-                ;adc counter
-                eor counter
+                eor #$0f;adc counter
                 rts
-                .cerror *-music2!=3,''
                 ; 3 remaining VDU19 bytes above
                 .byte 4
                 .byte 3
@@ -203,7 +202,7 @@ sn_write:
                 inx             ;e8        R12 value = $28 (6-bit reg)
                 tsb $1700       ;0c 00 17  23,0,12 - set CRTC R12
                 sta $16         ;85 16     22,135 - shadow mode 5
-                ora $16         ;05 16     22,5 - non-shadow mode 5
+                ;ora $16         ;05 16     22,5 - non-shadow mode 5
 init_text_end:
                 ldx #8
                 jsr +
@@ -227,8 +226,7 @@ pixel_table:
                 .byte pixel_value(0) ;black
                 .endif
                 .endfor
-
-fill_start:
+                
                 .fill 256-(types_end-fill_end)-(*-start)
 fill_end:
                 
@@ -249,7 +247,7 @@ type4: .block
                 sbc saddr+0
                 eor yc
                 rts
-                nop             ;maddening spare byte
+                .byte 3         ;palette value - colour 0 = blue
                 .endblock
                 .cerror size(type4)!=type_code_size,''
 type0: .block
@@ -261,15 +259,6 @@ type0: .block
                 .endblock
                 .cerror size(type0)!=type_code_size,''
                
-type5: .block
-                ; checquerboard scroll north
-                adc yc
-                eor saddr+0
-                rts
-                nop             ;maddening spare byte
-                .endblock
-                .cerror size(type5)!=type_code_size,''
-                
 type1: .block
                 ; slash scroll east
                 sbc saddr+0
@@ -287,8 +276,5 @@ type3: .block
                 rts
                 .endblock
                 .cerror size(type3)!=type_code_size,''
-
 types_end:
                 .endsection
-
-                .cwarn fill_end-fill_start!=0,format("Spare space: %d (0x%x)",fill_end-fill_start,fill_end-fill_start)
