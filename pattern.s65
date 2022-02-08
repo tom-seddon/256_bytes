@@ -189,13 +189,16 @@ init_text_begin=*-6
                 .byte 1
                 .byte 0
                 .byte 23
+vdu19_begin:
 music2:
                 eor #$0f;adc counter
                 rts
+                .cerror *-vdu19_begin!=3,''
                 ; 3 remaining VDU19 bytes above
                 .byte 4
                 .byte 3
                 .byte 19
+vdu19_end:
 sn_write:
                 sta system_via.ora_no_handshake
                 stz system_via.orb
@@ -227,9 +230,12 @@ pixel_table:
                 .byte pixel_value(0) ;black
                 .endif
                 .endfor
-                
-                .fill 256-(types_end-fill_end)-(*-start)
+
+fill_start:
+num_fill_bytes=256-(types_end-fill_end)-(*-start)
+                .fill num_fill_bytes
 fill_end:
+                .cwarn num_fill_bytes!=0,format("spare bytes: %d ($%x)",num_fill_bytes,num_fill_bytes)
                 
 type_code_size=6
                 
