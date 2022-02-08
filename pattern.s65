@@ -113,7 +113,8 @@ pixel_mask=*+1
 call_music:
                 jsr music1
                 and #$0f
-                ora #%10010000  ;tone 3 attenuation
+                eor #%10010000  ;tone 3 attenuation
+                ;eor #%10011111  ;tone 3 attenuation, invert volume
                 jsr sn_write
 
 write_pixel:
@@ -141,7 +142,7 @@ next_frame:
 
 update_music:
                 lda counter
-                bit #3
+                bit #15
                 bne update_sequence
 
 next_music:
