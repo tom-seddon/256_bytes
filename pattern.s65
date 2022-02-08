@@ -109,7 +109,7 @@ pixel_mask=*+1
                 ; bit saddr+0
                 ; bne write_pixel
 
-                ;asl a
+                eor #$0f
 call_music:
                 jsr music1
                 and #$0f
@@ -141,9 +141,9 @@ next_frame:
 +
 
 update_music:
-                lda counter
-                bit #15
-                bne update_sequence
+                ; lda counter
+                ; bit #1
+                ; bne update_sequence
 
 next_music:
                 lda call_music+1
@@ -152,7 +152,7 @@ next_music:
                 
 update_sequence:
                 lda counter
-                bit #7
+                bit #15
                 bne done
 
 next_sequence:
@@ -176,9 +176,7 @@ change_layer:
 got_layer_lsb:
                 sta start+1,x
 
-music1:
-                eor #$0f        ;4 5
-                and counter     ;2 3
+music2:
 done:
                 rts             ;1
 
@@ -190,8 +188,8 @@ init_text_begin=*-6
                 .byte 0
                 .byte 23
 vdu19_begin:
-music2:
-                eor #$0f;adc counter
+music1:
+                and counter
                 rts
                 .cerror *-vdu19_begin!=3,''
                 ; 3 remaining VDU19 bytes above
