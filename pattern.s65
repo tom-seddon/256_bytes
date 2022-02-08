@@ -204,7 +204,7 @@ sn_write:
                 inx             ;e8        R12 value = $28 (6-bit reg)
                 tsb $1700       ;0c 00 17  23,0,12 - set CRTC R12
                 sta $16         ;85 16     22,135 - shadow mode 5
-                ;ora $16         ;05 16     22,5 - non-shadow mode 5
+                ora $16         ;05 16     22,5 - non-shadow mode 5
 init_text_end:
                 ldx #8
                 jsr +
