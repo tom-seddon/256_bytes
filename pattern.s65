@@ -136,8 +136,15 @@ next_frame:
                                 
                 inc counter
                 bne +
-                ldx #$18        ;CLC
+
+                ldx #$18
                 stx next_sequence
+
+; restart:
+;                 lda next_sequence
+;                 eor #$38^$18    ;switch between CLC and SEC
+;                 sta next_sequence
+
 +
 
 update_music:
@@ -158,6 +165,10 @@ update_sequence:
 next_sequence:
                 sec
                 rol pixel_mask
+                bne +
+
+                jmp ($fffc)
++
 
                 ; next frame...
                 ldx #layer0-start
@@ -252,7 +263,10 @@ type4: .block
                 sbc saddr+0
                 eor yc
                 rts
-                .byte 3         ;palette value - colour 0 = blue
+
+                ; annoying wasted byte! Could rotate all the blocks so
+                ; this one comes last...
+                nop             
                 .endblock
                 .cerror size(type4)!=type_code_size,''
 type0: .block
