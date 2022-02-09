@@ -20,9 +20,9 @@ To build, type `make`.
 The output is SSD files in `build/`. Put on a disk and run with
 Shift+BREAK. Worthwhile ones:
 
-- `build/wobble_colours.ssd` - wobbling text and scrolling colours
-- `build/love_byte_2022.ssd` - big horizontally scrolling text
-- `build/pattern.ssd` - chunky patterns and "music"
+- `build/wobble_colours.ssd` - wobbling text and scrolling colours (https://www.pouet.net/prod.php?which=88421)
+- `build/2_scrollers.ssd` - big horizontally scrolling text
+- `build/alien_daydream.ssd` - chunky patterns and "music"
 
 # licence
 
