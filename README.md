@@ -22,7 +22,7 @@ Shift+BREAK. Worthwhile ones:
 
 - `build/wobble_colours.ssd` - wobbling text and scrolling colours (https://www.pouet.net/prod.php?which=88421)
 - `build/2_scrollers.ssd` - big horizontally scrolling text
-- `build/alien_daydream.ssd` - chunky patterns and "music"
+- `build/alien_daydream.ssd` - chunky patterns and "music" (https://www.pouet.net/prod.php?which=91130)
 
 # licence
 
