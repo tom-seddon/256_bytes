@@ -1,0 +1,64 @@
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+;-------------------------------------------------------------------------
+
+*=$70
+                .dsection zp
+                .cerror *>$90,"zp overflow"
+                
+*=$2000
+                .dsection code
+                .cerror *>$3000,"code overflow"
+
+;-------------------------------------------------------------------------
+
+                .section zp
+                .endsection
+
+;-------------------------------------------------------------------------
+
+                .section code
+start:
+                ldx #init_text_end-init_text_begin-1
+init_loop:
+                lda init_text_begin,x
+                jsr oswrch
+                dex
+                bpl init_loop
+
+                lda #2
+                sta $355        ;pretend it's mode 2
+                
+                lda #20
+                jsr oswrch      ;reset palette
+
+                lda #15
+                ldx #0
+                ldy #0
+                jsr osbyte      ;flush all buffers, including (especially)
+                                ;sound
+
+                sei
+                
+                lda #3
+                sta $7c00
+                lda #12
+                sta $7c01
+                
+-
+                jmp -
+                rts
+
+init_text=[22,133,22,5,23,0,12,$28,0,0,0,0,0,0,23,0,1,32,0,0,0,0,0,0]
+init_text_begin:
+                .text init_text[::-1]
+init_text_end:
+
+sines:
+                .for i=0,i<256,i+=1
+value:=((sin(i/256.0*2*pi)+1)*0.5)*255
+                .byte value
+                .endfor
+                
+                .endsection
