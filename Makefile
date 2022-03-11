@@ -8,7 +8,9 @@ TASS?=64tass
 EXOMIZER?=exomizer-3.1.1
 endif
 
+PYTHON2?=python
 PYTHON?=python3.8
+BEEBASM?=beebasm
 
 TMP:=build
 TASSCMD:=$(TASS) --m65c02 --cbm-prg -Wall -C --line-numbers
@@ -44,11 +46,15 @@ build: _folders
 
 .PHONY:build_r22
 build_r22: _folders
+	$(BEEBASM) -do "$(TMP)/r22_loader.ssd" -i "r22_loader.asm"
+	$(PYTHON2) "$(BEEB_BIN)/ssd_extract.py" -o "$(TMP)" "$(TMP)/r22_loader.ssd"
 	$(MAKE) _assemble SRC=r22 BBC=r22
-	cd "$(TMP)" && $(EXOMIZER) sfx 0x2000 r22.prg -o r22exo -t48075 -n
-	$(SHELLCMD) copy-file "$(TMP)/r22exo" "$(DEST)/$$.r22exo"
-	$(SHELLCMD) copy-file "$(TMP)/r22exo.inf" "$(DEST)/$$.r22exo.inf"
-	$(MAKE) _ssd SSD=r22exo BBC=r22exo
+	$(PYTHON) "$(BEEB_BIN)/ssd_create.py" -o "$(TMP)/r22.ssd" -b "CHAIN\"r22\"" "$(DEST)/$$.r22"
+
+# cd "$(TMP)" && $(EXOMIZER) sfx 0x2000 r22.prg -o r22exo -t48075 -n
+# $(SHELLCMD) copy-file "$(TMP)/r22exo" "$(DEST)/$$.r22exo"
+# $(SHELLCMD) copy-file "$(TMP)/r22exo.inf" "$(DEST)/$$.r22exo.inf"
+# $(MAKE) _ssd SSD=r22exo BBC=r22exo
 
 ##########################################################################
 ##########################################################################
@@ -116,9 +122,9 @@ _github.io:
 # for me, on my laptop
 .PHONY:tom_laptop
 tom_laptop:
-#	$(MAKE) build_r22
-	$(MAKE) build
-	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=r22exo
+	$(MAKE) build_r22
+#	$(MAKE) build
+	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=r22
 
 .PHONY:b2
 b2:

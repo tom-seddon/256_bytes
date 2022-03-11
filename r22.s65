@@ -7,19 +7,46 @@
                 .dsection zp
                 .cerror *>$90,"zp overflow"
                 
-*=$2000
+*=$e00
+                .binary "build/r22_loader/0/$.R22"
+                
                 .dsection code
-                .cerror *>$3000,"code overflow"
+                .cerror *>$5800,"code overflow"
 
 ;-------------------------------------------------------------------------
 
                 .section zp
+top_left_addr:
+                .fill 2
+dest:
+                .fill 2
+top_left_x:
+                .fill 1
+top_left_y:
+                .fill 1
+pixel_value:
+                .fill 1
                 .endsection
 
+mode2_left .function mode2_left_index
+                .endf ((mode2_left_index&8)<<4)|((mode2_left_index&4)<<3)|((mode2_left_index&2)<<2)|((mode2_left_index&1)<<1)
+
+mode2_right .function mode2_right_index
+                .endf mode2_left(mode2_right_index)>>1
+
+mode2_value .function mode2_value_left,mode2_value_right
+                .endf mode2_left(mode2_value_left)|mode2_right(mode2_value_right)
+                
 ;-------------------------------------------------------------------------
 
                 .section code
 start:
+                lda #15
+                ldx #0
+                ldy #0
+                jsr osbyte      ;flush all buffers, including (especially)
+                                ;sound
+
                 ldx #init_text_end-init_text_begin-1
 init_loop:
                 lda init_text_begin,x
@@ -27,27 +54,122 @@ init_loop:
                 dex
                 bpl init_loop
 
-                lda #2
-                sta $355        ;pretend it's mode 2
+                lda #15
+                sta $360        ;pretend it's a 16 colour mode
                 
                 lda #20
                 jsr oswrch      ;reset palette
 
-                lda #15
-                ldx #0
-                ldy #0
-                jsr osbyte      ;flush all buffers, including (especially)
-                                ;sound
+                stz $fe20
 
                 sei
+
+                stz top_left_x
+                stz top_left_y
+
+                ;lda #acccon.x   ;map shadow, display main
+                ;sta acccon
+                ;jsr fill_screen
+
+                ;lda #acccon.d   ;map main, display shadow
+                ;sta acccon
+                ;jsr fill_screen
+
+                ldx #top_left_addr
+                jsr reset_screen_addr
+
+main_loop:
++
+
+                lda #VIAIRQ.ca1
+wait_for_vsync_loop:
+                bit system_via.ifr
+                beq wait_for_vsync_loop
+                sta system_via.ifr ;ack
+
+                ldx #12
+                stx $fe00
+                lda top_left_addr+1
+                eor #$54
+                sta $fe01
+
+                inx
+                stx $fe00
+                lda top_left_addr+0
+                sta $fe01
+
+                lda top_left_addr+0
+                sta dest+0
+                lda top_left_addr+1
+                sta dest+1
+
+                ldx #dest
+                lda #31
+                jsr add_screen_addr
+
+                ldy #32
+loop:
+                lda pixel_value
+                sta (dest)
                 
-                lda #3
-                sta $7c00
-                lda #12
-                sta $7c01
+                lda #32
+                jsr add_screen_addr
+                dey
+                bne loop
+
+                lda #1
+                ldx #top_left_addr
+                jsr add_screen_addr
+
+                inc pixel_value
+
+                jmp main_loop
+
+reset_screen_addr:
+                stz 0,x
+reset_screen_addr_msb:
+                lda #$7c
+                sta 1,x
+                rts
+
+; fill_screen: .proc
+;                 ldx #dest
+;                 jsr reset_screen_addr
+
+;                 ldy #0
+; -
+;                 lda fill_colours,y
+;                 sta (dest)
+
+;                 iny
+;                 cpy #size(fill_colours)
+;                 bne +
+;                 ldy #0
+; +
+
+;                 lda #1(*
+;                 jsr add_screen_addr
+;                 bcc -
+;                 rts
+
+; fill_colours: .block
+;                 .for i=1,i<16,i+=1
+;                 .byte mode2_value(i,i)
+;                 .endfor
+;                 .endblock
+;                 .endproc
                 
--
-                jmp -
+add_screen_addr:
+                clc
+                adc 0,x
+                sta 0,x
+                bcc +
+                inc 1,x
+                clc
+                bpl +
+                jsr reset_screen_addr_msb
+                sec
++
                 rts
 
 init_text=[22,133,22,5,23,0,12,$28,0,0,0,0,0,0,23,0,1,32,0,0,0,0,0,0]
@@ -55,10 +177,5 @@ init_text_begin:
                 .text init_text[::-1]
 init_text_end:
 
-sines:
-                .for i=0,i<256,i+=1
-value:=((sin(i/256.0*2*pi)+1)*0.5)*255
-                .byte value
-                .endfor
-                
                 .endsection
+                
