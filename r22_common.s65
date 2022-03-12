@@ -1,0 +1,181 @@
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+;-------------------------------------------------------------------------
+
+*=$70
+                .dsection zp
+                .cerror *>$90,"zp overflow"
+                
+*=$e00
+                ; .binary "build/r22_loader/0/$.R22"
+                .dsection basic_loader
+                .dsection code
+                .cerror *>$5800,"code overflow"
+
+;-------------------------------------------------------------------------
+
+                .if !FAST_STARTUP
+                ; BASIC setup code writes the sines table to this
+                ; location.
+sines_table=$900
+                .endif
+                
+;-------------------------------------------------------------------------
+
+                .section zp
+top_left_addr:
+                .fill 2
+dest:
+                .fill 2
+top_left_x:
+                .fill 1
+top_left_y:
+                .fill 1
+pixel_value:
+                .fill 1
+                .endsection
+
+mode2_left .function mode2_left_index
+                .endf ((mode2_left_index&8)<<4)|((mode2_left_index&4)<<3)|((mode2_left_index&2)<<2)|((mode2_left_index&1)<<1)
+
+mode2_right .function mode2_right_index
+                .endf mode2_left(mode2_right_index)>>1
+
+mode2_value .function mode2_value_left,mode2_value_right
+                .endf mode2_left(mode2_value_left)|mode2_right(mode2_value_right)
+
+;-------------------------------------------------------------------------
+
+                .section basic_loader
+                .byte 13
+_10:
+                .basic_line_number 10
+                .byte _20-_10
+                ; TODO - this is 8 bytes. Consider using resident
+                ; integer variables everywhere (if it ends up
+                ; feasible)
+                .text tokens.LOMEM_lvalue,"=&5000:"
+                .text tokens.MODE,"132:",tokens.MODE,"5:"
+                .text "!-512=&2001280C:"
+                .if FAST_STARTUP
+                ; ...nothing...
+                .else
+                .text tokens.FOR,"I=0",tokens.TO,"255:I?&",format("%X",sines_table),"=(",tokens.SIN,"(I/128*",tokens.PI,")+1)*127.5:",tokens.NEXT,":"
+                .endif
+                .text tokens.CALL,tokens.TO,"P"
+                .byte 13
+_20:
+                .byte 255
+                .endsection
+                
+;-------------------------------------------------------------------------
+
+                .section code
+start:
+                lda #15
+                ldx #0
+                ldy #0
+                jsr osbyte      ;flush all buffers, including (especially)
+                                ;sound
+
+                lda #15
+                sta $360        ;pretend it's a 16 colour mode
+                
+                lda #20
+                jsr oswrch      ;reset palette
+
+                sei
+                stz $fe20
+
+                stz top_left_x
+                stz top_left_y
+
+                ;lda #acccon.x   ;map shadow, display main
+                ;sta acccon
+                ;jsr fill_screen
+
+                ;lda #acccon.d   ;map main, display shadow
+                ;sta acccon
+                ;jsr fill_screen
+
+                ldx #top_left_addr
+                jsr reset_screen_addr
+
+main_loop:
++
+
+                lda #VIAIRQ.ca1
+wait_for_vsync_loop:
+                bit system_via.ifr
+                beq wait_for_vsync_loop
+                sta system_via.ifr ;ack
+
+                ldx #12
+                stx $fe00
+                lda top_left_addr+1
+                eor #$54
+                sta $fe01
+
+                inx
+                stx $fe00
+                lda top_left_addr+0
+                sta $fe01
+
+                lda top_left_addr+0
+                sta dest+0
+                lda top_left_addr+1
+                sta dest+1
+
+                ldx #dest
+                lda #31
+                jsr add_screen_addr
+
+                ldy #32
+loop:
+                lda pixel_value
+                sta (dest)
+                
+                lda #32
+                jsr add_screen_addr
+                dey
+                bne loop
+
+                lda #1
+                ldx #top_left_addr
+                jsr add_screen_addr
+
+                inc pixel_value
+
+                jmp main_loop
+
+reset_screen_addr:
+                stz 0,x
+reset_screen_addr_msb:
+                lda #$7c
+                sta 1,x
+                rts
+
+add_screen_addr:
+                clc
+                adc 0,x
+                sta 0,x
+                bcc +
+                inc 1,x
+                clc
+                bpl +
+                jsr reset_screen_addr_msb
+                sec
++
+                rts
+
+                .if FAST_STARTUP
+                ; TODO alignment?
+sines_table:
+                .for i=0,i<256,i+=1
+                .byte floor(((sin(i/256.0*2*pi)+1)*0.5)*255)
+                .endfor
+                .endif
+
+                .endsection
+                

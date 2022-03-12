@@ -8,7 +8,6 @@ TASS?=64tass
 EXOMIZER?=exomizer-3.1.1
 endif
 
-PYTHON2?=python
 PYTHON?=python3.8
 BEEBASM?=beebasm
 
@@ -46,10 +45,9 @@ build: _folders
 
 .PHONY:build_r22
 build_r22: _folders
-	$(BEEBASM) -do "$(TMP)/r22_loader.ssd" -i "r22_loader.asm"
-	$(PYTHON2) "$(BEEB_BIN)/ssd_extract.py" -o "$(TMP)" "$(TMP)/r22_loader.ssd"
 	$(MAKE) _assemble SRC=r22 BBC=r22
-	$(PYTHON) "$(BEEB_BIN)/ssd_create.py" -o "$(TMP)/r22.ssd" -b "CHAIN\"r22\"" "$(DEST)/$$.r22"
+	$(MAKE) _assemble SRC=r22_fast_startup BBC=r22fs
+	$(PYTHON) "$(BEEB_BIN)/ssd_create.py" -o "$(TMP)/r22.ssd" -b "CHAIN\"r22fs\"" "$(DEST)/$$.r22" "$(DEST)/$$.r22fs"
 
 # cd "$(TMP)" && $(EXOMIZER) sfx 0x2000 r22.prg -o r22exo -t48075 -n
 # $(SHELLCMD) copy-file "$(TMP)/r22exo" "$(DEST)/$$.r22exo"
