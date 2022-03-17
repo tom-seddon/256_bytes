@@ -3,15 +3,16 @@
 
 ;-------------------------------------------------------------------------
 
-*=$70
+*=0
                 .dsection zp
-                .cerror *>$90,"zp overflow"
+                .cerror *>$80,"zp overflow"
                 
 *=$e00
                 ; .binary "build/r22_loader/0/$.R22"
                 .dsection basic_loader
                 .dsection code
-                .cerror *>$5800,"code overflow"
+                ; (has to stop at $3000 so it doesn't hit shadow RAM)
+                .cerror *>$3000,"code overflow"
 
 ;-------------------------------------------------------------------------
 
@@ -20,21 +21,45 @@
                 ; location.
 sines_table=$900
                 .endif
+
+SCREEN_WIDTH=32
+SCREEN_HEIGHT=32
                 
 ;-------------------------------------------------------------------------
 
-                .section zp
+BufferState: .struct
 top_left_addr:
+                .fill 2
+top_left_x:
+                .fill 2
+top_left_y:
+                .fill 1
+dx:
+                .fill 1
+dy:
+                .fill 1
+                .endstruct
+                
+                .section zp
+display_buffer: .dstruct BufferState
+write_buffer: .dstruct BufferState
+top_left_x:
+                .fill 2
+top_left_y:
+                .fill 1
+fx:
+                .fill 2
+fy:
+                .fill 1
+func:
                 .fill 2
 dest:
                 .fill 2
-top_left_x:
-                .fill 1
-top_left_y:
-                .fill 1
-pixel_value:
+fill_counter:
                 .fill 1
                 .endsection
+
+;-------------------------------------------------------------------------
 
 mode2_left .function mode2_left_index
                 .endf ((mode2_left_index&8)<<4)|((mode2_left_index&4)<<3)|((mode2_left_index&2)<<2)|((mode2_left_index&1)<<1)
@@ -55,14 +80,18 @@ _10:
                 ; TODO - this is 8 bytes. Consider using resident
                 ; integer variables everywhere (if it ends up
                 ; feasible)
-                .text tokens.LOMEM_lvalue,"=&5000:"
-                .text tokens.MODE,"132:",tokens.MODE,"5:"
-                .text "!-512=&2001280C:"
+                .text tokens.LOMEM_lvalue,"=&3000:"
                 .if FAST_STARTUP
                 ; ...nothing...
                 .else
                 .text tokens.FOR,"I=0",tokens.TO,"255:I?&",format("%X",sines_table),"=(",tokens.SIN,"(I/128*",tokens.PI,")+1)*127.5:",tokens.NEXT,":"
                 .endif
+                ; select mode 5 second - it costs a few bytes to set
+                ; ACCCON up, but the other option is having the BASIC
+                ; stack in screen memory and that's more expensive to
+                ; fix
+                .text tokens.MODE,"132:",tokens.MODE,"5:"
+                .text "!-512=&2001280C:"
                 .text tokens.CALL,tokens.TO,"P"
                 .byte 13
 _20:
@@ -85,67 +114,36 @@ start:
                 lda #20
                 jsr oswrch      ;reset palette
 
+                sta $fffe
                 sei
                 stz $fe20
 
-                stz top_left_x
-                stz top_left_y
+                ldx #0
+-
+                stz 0,x
+                inx
+                bpl -
 
-                ;lda #acccon.x   ;map shadow, display main
-                ;sta acccon
-                ;jsr fill_screen
+                lda #acccon.d  ;display shadow, main man
+                sta acccon
 
-                ;lda #acccon.d   ;map main, display shadow
-                ;sta acccon
-                ;jsr fill_screen
+                ldx #display_buffer.top_left_addr
+                jsr reset_screen_addr
 
-                ldx #top_left_addr
+                ldx #write_buffer.top_left_addr
                 jsr reset_screen_addr
 
 main_loop:
-+
-
                 lda #VIAIRQ.ca1
 wait_for_vsync_loop:
                 bit system_via.ifr
                 beq wait_for_vsync_loop
                 sta system_via.ifr ;ack
 
-                ldx #12
-                stx $fe00
-                lda top_left_addr+1
-                eor #$54
-                sta $fe01
+                jsr swap_buffers
+                jsr update_write_buffer
 
-                inx
-                stx $fe00
-                lda top_left_addr+0
-                sta $fe01
-
-                lda top_left_addr+0
-                sta dest+0
-                lda top_left_addr+1
-                sta dest+1
-
-                ldx #dest
-                lda #31
-                jsr add_screen_addr
-
-                ldy #32
-loop:
-                lda pixel_value
-                sta (dest)
-                
-                lda #32
-                jsr add_screen_addr
-                dey
-                bne loop
-
-                lda #1
-                ldx #top_left_addr
-                jsr add_screen_addr
-
-                inc pixel_value
+                jsr move_down
 
                 jmp main_loop
 
@@ -156,18 +154,378 @@ reset_screen_addr_msb:
                 sta 1,x
                 rts
 
-add_screen_addr:
+;-------------------------------------------------------------------------
+
+move_left: .proc
+                dec display_buffer.dx
+                dec write_buffer.dx
+                rts
+                .endproc
+
+;-------------------------------------------------------------------------
+
+move_right: .proc
+                inc display_buffer.dx
+                inc write_buffer.dx
+                rts
+                .endproc
+
+;-------------------------------------------------------------------------
+
+move_down: .proc
+                inc display_buffer.dy
+                inc write_buffer.dy
+                rts
+                .endproc
+                
+;-------------------------------------------------------------------------
+
+move_up: .proc
+                dec display_buffer.dy
+                dec write_buffer.dy
+                rts
+                .endproc
+                
+;-------------------------------------------------------------------------
+
+add_screen_addr: .proc
                 clc
                 adc 0,x
                 sta 0,x
-                bcc +
-                inc 1,x
-                clc
+                tya
+                adc 1,x
                 bpl +
-                jsr reset_screen_addr_msb
                 sec
+                sbc #4
 +
+                sta 1,x
                 rts
+                .endproc
+                
+;-------------------------------------------------------------------------
+
+sub_screen_addr: .proc
+                sta subl+1
+                sty subh+1
+                sec
+                lda 0,x
+subl: sbc #$ff
+                sta 0,x
+                lda 1,x
+subh: sbc #$ff
+                cmp #$7c
+                bcs +
+                lda #$7f
++
+                sta 1,x
+                rts
+                
+                .endproc
+                
+;-------------------------------------------------------------------------
+;
+
+update_write_buffer: .proc
+handle_dx:
+                lda write_buffer.dx
+                beq handle_dy
+                bpl move_right_loop
+move_left_loop:
+                ; update X, init fx
+                sec
+                lda write_buffer.top_left_x+0
+                sbc #1
+                sta write_buffer.top_left_x+0
+                sta fx+0
+                lda write_buffer.top_left_x+1
+                bcs +
+                dec a
++
+                sta write_buffer.top_left_x+1
+                sta fx+1
+
+                ; update buffer addr
+                ldx #write_buffer.top_left_addr
+                lda #1
+                ldy #0
+                jsr sub_screen_addr
+
+                ; init fy                
+                lda write_buffer.top_left_y
+                sta fy
+
+                ; init dest
+                lda write_buffer.top_left_addr+0
+                sta dest+0
+                lda write_buffer.top_left_addr+1
+                sta dest+1
+
+                ; fill area
+                jsr fill_column
+
+                inc write_buffer.dx
+                bne move_left_loop
+                bra handle_dy
+
+move_right_loop:
+                ; update X
+                inc write_buffer.top_left_x+0
+                beq +
+                inc write_buffer.top_left_x+1
++
+
+                ; init fx
+                clc
+                lda write_buffer.top_left_x+0
+                adc #SCREEN_WIDTH-1
+                sta fx+0
+                lda write_buffer.top_left_x+1
+                adc #0
+                sta fx+1
+
+                ; init fy
+                lda write_buffer.top_left_y
+                sta fy
+
+                ; update buffer addr
+                ldx #write_buffer.top_left_addr
+                lda #1
+                ldy #0
+                jsr add_screen_addr
+
+                ; init dest
+                lda write_buffer.top_left_addr+0
+                sta dest+0
+                lda write_buffer.top_left_addr+1
+                sta dest+1
+
+                ldx #dest
+                lda #SCREEN_WIDTH-1
+                ldy #0
+                jsr add_screen_addr
+
+                jsr fill_column
+
+                dec write_buffer.dx
+                bne move_right_loop
+
+handle_dy:
+                ; TODO - this will potentially re-fill some bytes.
+                ; Don't need to do that.
+                lda write_buffer.dy
+                beq done
+                bpl move_down_loop
+move_up_loop:
+                ; update Y
+                dec write_buffer.top_left_y
+
+                ; init fx
+                lda write_buffer.top_left_x+0
+                sta fx+0
+                lda write_buffer.top_left_x+1
+                sta fx+1
+
+                ; init fy
+                lda write_buffer.top_left_y
+                sta fy
+
+                ; update buffer addr
+                ldx #write_buffer.top_left_addr
+                lda #SCREEN_WIDTH
+                ldy #0
+                jsr sub_screen_addr
+
+                ; init dest
+                lda write_buffer.top_left_addr+0
+                sta dest+0
+                lda write_buffer.top_left_addr+1
+                sta dest+1
+
+                ; fill area
+                jsr fill_row
+
+                inc write_buffer.dy
+                bne move_up_loop
+                bra done
+
+move_down_loop:
+                ; update Y
+                inc write_buffer.top_left_y
+
+                ; init fx
+                lda write_buffer.top_left_x+0
+                sta fx+0
+                lda write_buffer.top_left_x+1
+                sta fx+1
+
+                ; init fy
+                clc
+                lda write_buffer.top_left_y
+                adc #SCREEN_HEIGHT-1
+                sta fy
+
+                ; update buffer addr
+                ldx #write_buffer.top_left_addr
+                lda #SCREEN_WIDTH
+                ldy #0
+                jsr add_screen_addr
+
+                ; init dest
+                lda write_buffer.top_left_addr+0
+                sta dest+0
+                lda write_buffer.top_left_addr+1
+                sta dest+1
+
+                ldx #dest
+                lda #<(SCREEN_HEIGHT-1)*SCREEN_WIDTH
+                ldy #>(SCREEN_HEIGHT-1)*SCREEN_WIDTH
+                jsr add_screen_addr
+
+                ; fill area
+                jsr fill_row
+
+                dec write_buffer.dy
+                bne move_down_loop
+
+done:
+                rts
+                .endproc
+                
+;-------------------------------------------------------------------------
+;
+swap_buffers: .proc
+                ; exchange metadata.
+                ldx #size(BufferState)-1
+-
+                ldy display_buffer,x
+                lda write_buffer,x
+                sta display_buffer,x
+                sty write_buffer,x
+                dex
+                bpl -
+
+                ; set CRTC for display buffer.
+                ldx #12
+                stx $fe00
+                lda display_buffer.top_left_addr+1
+                eor #$54
+                sta $fe01
+
+                inx
+                stx $fe00
+                lda display_buffer.top_left_addr+0
+                sta $fe01
+
+                ; exchange mapped and displayed buffers.
+                lda acccon
+                eor #acccon.x|acccon.d
+                sta acccon
+
+                rts
+                .endproc
+
+;-------------------------------------------------------------------------
+;
+; entry:
+;
+; @fx, ?fy - coordinates
+;
+; @dest - address to write to
+; 
+
+fill_row: .proc
+                lda #SCREEN_WIDTH
+                sta fill_counter
+
+func_loop:
+                jsr init_func
+
+row_loop:
+                jsr call_func
+                sta (dest)
+
+                lda #1
+                ldx #dest
+                ldy #0
+                jsr add_screen_addr
+
+                dec fill_counter
+                beq done
+
+                inc fx+0
+                bne row_loop
+
+                inc fx+1
+                bra func_loop
+
+done:
+                rts
+                .endproc
+
+;-------------------------------------------------------------------------
+;
+; entry:
+;
+; @fx, ?fy - coordinates
+;
+; @dest - address to write to
+;
+
+fill_column: .proc
+                lda #SCREEN_HEIGHT
+                sta fill_counter
+
+                jsr init_func
+column_loop:
+                jsr call_func
+                sta (dest)
+
+                lda #SCREEN_WIDTH
+                ldx #dest
+                ldy #0
+                jsr add_screen_addr
+
+                inc fy
+
+                dec fill_counter
+                bne column_loop
+
+                rts
+                .endproc
+
+;-------------------------------------------------------------------------
+
+call_func:
+                jmp (func)
+
+;-------------------------------------------------------------------------
+
+init_func: .proc
+                lda #<diagonals_func
+                sta func+0
+                
+                lda #>diagonals_func
+                sta func+1
+                
+                rts
+                .endproc
+
+diagonals_func:
+                lda fx
+                sec
+                sbc fy
+                tax
+                lda pixels_table,x
+                rts
+                
+;-------------------------------------------------------------------------
+
+pixels_table:
+                .for i=0,i<16,i+=1
+                .byte mode2_value(i,i)
+                .endfor
+
+;-------------------------------------------------------------------------
 
                 .if FAST_STARTUP
                 ; TODO alignment?
