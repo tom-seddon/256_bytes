@@ -143,8 +143,6 @@ wait_for_vsync_loop:
                 jsr swap_buffers
                 jsr update_write_buffer
 
-                jsr move_down
-
                 jmp main_loop
 
 reset_screen_addr:
@@ -188,7 +186,9 @@ move_up: .proc
                 
 ;-------------------------------------------------------------------------
 
-add_screen_addr: .proc
+add8_screen_addr:
+                ldy #0
+add16_screen_addr: .block
                 clc
                 adc 0,x
                 sta 0,x
@@ -200,11 +200,13 @@ add_screen_addr: .proc
 +
                 sta 1,x
                 rts
-                .endproc
+                .endblock
                 
 ;-------------------------------------------------------------------------
 
-sub_screen_addr: .proc
+sub8_screen_addr:
+                ldy #0
+sub16_screen_addr: .block
                 sta subl+1
                 sty subh+1
                 sec
@@ -220,7 +222,7 @@ subh: sbc #$ff
                 sta 1,x
                 rts
                 
-                .endproc
+                .endblock
                 
 ;-------------------------------------------------------------------------
 ;
@@ -247,8 +249,7 @@ move_left_loop:
                 ; update buffer addr
                 ldx #write_buffer.top_left_addr
                 lda #1
-                ldy #0
-                jsr sub_screen_addr
+                jsr sub8_screen_addr
 
                 ; init fy                
                 lda write_buffer.top_left_y
@@ -290,8 +291,7 @@ move_right_loop:
                 ; update buffer addr
                 ldx #write_buffer.top_left_addr
                 lda #1
-                ldy #0
-                jsr add_screen_addr
+                jsr add8_screen_addr
 
                 ; init dest
                 lda write_buffer.top_left_addr+0
@@ -301,8 +301,7 @@ move_right_loop:
 
                 ldx #dest
                 lda #SCREEN_WIDTH-1
-                ldy #0
-                jsr add_screen_addr
+                jsr add8_screen_addr
 
                 jsr fill_column
 
@@ -332,8 +331,7 @@ move_up_loop:
                 ; update buffer addr
                 ldx #write_buffer.top_left_addr
                 lda #SCREEN_WIDTH
-                ldy #0
-                jsr sub_screen_addr
+                jsr sub8_screen_addr
 
                 ; init dest
                 lda write_buffer.top_left_addr+0
@@ -367,8 +365,7 @@ move_down_loop:
                 ; update buffer addr
                 ldx #write_buffer.top_left_addr
                 lda #SCREEN_WIDTH
-                ldy #0
-                jsr add_screen_addr
+                jsr add8_screen_addr
 
                 ; init dest
                 lda write_buffer.top_left_addr+0
@@ -379,7 +376,7 @@ move_down_loop:
                 ldx #dest
                 lda #<(SCREEN_HEIGHT-1)*SCREEN_WIDTH
                 ldy #>(SCREEN_HEIGHT-1)*SCREEN_WIDTH
-                jsr add_screen_addr
+                jsr add16_screen_addr
 
                 ; fill area
                 jsr fill_row
@@ -447,7 +444,7 @@ row_loop:
                 lda #1
                 ldx #dest
                 ldy #0
-                jsr add_screen_addr
+                jsr add16_screen_addr
 
                 dec fill_counter
                 beq done
@@ -483,7 +480,7 @@ column_loop:
                 lda #SCREEN_WIDTH
                 ldx #dest
                 ldy #0
-                jsr add_screen_addr
+                jsr add16_screen_addr
 
                 inc fy
 
