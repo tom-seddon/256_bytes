@@ -2,37 +2,25 @@
 
 ifeq ($(OS),Windows_NT)
 TASS?=64tass.exe
-$(error exomizer...?)
+# $(error exomizer...?)
+PYTHON2?=py -2
+PYTHON?=py -3
 else
 TASS?=64tass
 EXOMIZER?=exomizer-3.1.1
+PYTHON?=python3.8
 endif
 
-PYTHON?=python3.8
 BEEBASM?=beebasm
 
 TMP:=build
 TASSCMD:=$(TASS) --m65c02 --cbm-prg -Wall -C --line-numbers
-BEEB_BIN:=$(realpath submodules/beeb/bin)
 SHELLCMD:=$(PYTHON) $(realpath submodules/shellcmd.py/shellcmd.py)
-DEST:=$(realpath beeb/1)
+BEEB_BIN:=$(shell $(SHELLCMD) realpath ./submodules/beeb/bin)
+DEST:=$(shell $(SHELLCMD) realpath ./beeb/1)
 
 ##########################################################################
 ##########################################################################
-
-$(TMP)/StuntCarRacerTitleScreen.dat:StuntCarRacerTitleScreen.png
-	$(PYTHON) $(BEEB_BIN)/png2bbc.py -o "$@" --160 "$<" 2
-
-# $(TMP)/StuntCarRacerTitleScreen.exo:$(TMP)/StuntCarRacerTitleScreen.dat
-# 	$(EXO) 
-
-##########################################################################
-##########################################################################
-
-.PHONY:_folders
-_folders:
-	$(SHELLCMD) mkdir "$(DEST)"
-	$(SHELLCMD) mkdir "$(TMP)"
 
 .PHONY:build
 build: _folders
@@ -49,10 +37,24 @@ build_r22: _folders
 	$(MAKE) _assemble SRC=r22_fast_startup BBC=r22fs
 	$(PYTHON) "$(BEEB_BIN)/ssd_create.py" -o "$(TMP)/r22.ssd" -b "CHAIN\"r22fs\"" "$(DEST)/$$.r22" "$(DEST)/$$.r22fs"
 
+.PHONY:_folders
+_folders:
+	$(SHELLCMD) mkdir "$(DEST)"
+	$(SHELLCMD) mkdir "$(TMP)"
+
 # cd "$(TMP)" && $(EXOMIZER) sfx 0x2000 r22.prg -o r22exo -t48075 -n
 # $(SHELLCMD) copy-file "$(TMP)/r22exo" "$(DEST)/$$.r22exo"
 # $(SHELLCMD) copy-file "$(TMP)/r22exo.inf" "$(DEST)/$$.r22exo.inf"
 # $(MAKE) _ssd SSD=r22exo BBC=r22exo
+
+##########################################################################
+##########################################################################
+
+$(TMP)/StuntCarRacerTitleScreen.dat:StuntCarRacerTitleScreen.png
+	$(PYTHON2) $(BEEB_BIN)/png2bbc.py -o "$@" --160 "$<" 2
+
+# $(TMP)/StuntCarRacerTitleScreen.exo:$(TMP)/StuntCarRacerTitleScreen.dat
+# 	$(EXO) 
 
 ##########################################################################
 ##########################################################################
