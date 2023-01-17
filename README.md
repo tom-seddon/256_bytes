@@ -31,3 +31,7 @@ GPL 3.0
 # example `.dir-locals.el`
 
     ((nil . ((compile-command . "cd ~/beeb/code/256_bytes && make tom_laptop"))))
+
+# example jsbeeb link
+
+https://bbc.godbolt.org/?&disc=https://tom-seddon.github.io/alien_daydream.ssd&autoboot&model=Master

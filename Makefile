@@ -19,6 +19,12 @@ SHELLCMD:=$(PYTHON) $(realpath submodules/shellcmd.py/shellcmd.py)
 BEEB_BIN:=$(shell $(SHELLCMD) realpath ./submodules/beeb/bin)
 DEST:=$(shell $(SHELLCMD) realpath ./beeb/1)
 
+ifeq ($(OS),Windows_NT)
+GITHUB_IO:=$(shell $(SHELLCMD) realpath ../tom-seddon.github.io)
+else
+GITHUB_IO:=$(HOME)/github/tom-seddon.github.io/
+endif
+
 ##########################################################################
 ##########################################################################
 
@@ -30,7 +36,11 @@ build: _folders
 	$(MAKE) _assemble_and_ssd SRC=2_scrollers BBC=2SCROLL SSD=2_scrollers
 	$(MAKE) _assemble_and_ssd SRC=alien_daydream BBC=ALIEN SSD=alien_daydream
 	$(MAKE) build_r22
+	$(MAKE) build_lovebyte_2023
 
+.PHONY:build_lovebyte_2023
+build_lovebyte_2023:
+	$(MAKE) _assemble_and_ssd SRC=lovebyte_2023 BBC=LB23 SSD=lovebyte_2023
 .PHONY:build_r22
 build_r22: _folders
 	$(MAKE) _assemble SRC=r22 BBC=r22
@@ -88,17 +98,21 @@ clean:
 ##########################################################################
 
 .PHONY:dist
+dist: _SSD=./ssd/
 dist:
-	$(SHELLCMD) mkdir "$(SSD)"
-	$(SHELLCMD) copy-file "$(TMP)/wobble_colours.ssd" "$(SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/wobble_colours_scroll.ssd" "$(SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/2_scrollers.ssd" "$(SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/alien_daydream.ssd" "$(SSD)/"
+	$(MAKE) clean
+	$(MAKE) build
+	$(SHELLCMD) mkdir "$(_SSD)"
+	$(SHELLCMD) copy-file "$(TMP)/wobble_colours.ssd" "$(_SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/wobble_colours_scroll.ssd" "$(_SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/alias_sines.ssd" "$(_SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/2_scrollers.ssd" "$(_SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/alien_daydream.ssd" "$(_SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023.ssd" "$(_SSD)/"
 
 ##########################################################################
 ##########################################################################
 
-GITHUB_IO:=$(HOME)/github/tom-seddon.github.io/
 
 # for me, on my Mac, so assume Unix...
 .PHONY:dist_and_upload
@@ -109,6 +123,7 @@ dist_and_upload:
 	$(MAKE) _github.io NAME=alias_sines.ssd
 	$(MAKE) _github.io NAME=2_scrollers.ssd
 	$(MAKE) _github.io NAME=alien_daydream.ssd
+	$(MAKE) _github.io NAME=lovebyte_2023.ssd
 	cd "$(GITHUB_IO)" && git push
 
 .PHONY:_github.io
@@ -122,11 +137,10 @@ _github.io:
 # for me, on my laptop
 .PHONY:tom_laptop
 tom_laptop:
-	$(MAKE) build_r22
-#	$(MAKE) build
-	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=r22
+	$(MAKE) build_lovebyte_2023
+	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=lovebyte_2023
 
 .PHONY:b2
 b2:
-	curl -G 'http://localhost:48075/reset/b2' --data-urlencode "config=$(CONFIG)"
-	curl -H 'Content-Type:application/binary' --upload-file '$(TMP)/$(SSD).ssd' 'http://localhost:48075/run/b2?name=$(SSD).ssd'
+	curl --silent -G 'http://localhost:48075/reset/b2' --data-urlencode "config=$(CONFIG)"
+	curl --silent -H 'Content-Type:application/binary' --upload-file '$(TMP)/$(SSD).ssd' 'http://localhost:48075/run/b2?name=$(SSD).ssd'
