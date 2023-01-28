@@ -8,8 +8,10 @@
 *=$1900
                 .dsection code
 
-nblobs=8
-
+DMAX_COLOUR_CHANGE_COUNTER_VALUE=12
+MIN_MAX_COLOUR=16
+MAX_MAX_COLOUR=24
+                
 ;-------------------------------------------------------------------------
 
                 .section zp
@@ -18,7 +20,9 @@ shift_outbits: .fill 1
 colour: .fill 1
 other_pixel: .fill 1
 max_colour: .fill 1
+dmax_colour: .fill 1
 noise_value: .fill 1
+dmax_colour_change_counter: .fill 1
                 .endsection
 
 ;-------------------------------------------------------------------------
@@ -36,13 +40,11 @@ sn_atten: .function ch,atten
                 .cerror atten<0||atten>15,"invalid SN attenuation"
                 .endfunction sn_atten_reg(ch)|atten
 
-sn_freqh: .function ch,freq
-                .cerror ch<0||ch>3,"invalid SN channel"
+sn_freqh: .function freq
                 .cerror freq<0||freq>1023,"invalid SN frequency"
                 .endfunction freq>>4
 
 sn_freql: .function ch,freq
-                .cerror ch<0||ch>3,"invalid SN channel"
                 .cerror freq<0||freq>1023,"invalid SN frequency"
                 .endfunction sn_freq_reg(ch)|freq&15
                 
@@ -65,8 +67,11 @@ clear_zp_loop:
                 lda #$30
                 sta dest+1
 
-                lda #18
+                lda #MIN_MAX_COLOUR
                 sta max_colour
+
+                lda #DMAX_COLOUR_CHANGE_COUNTER_VALUE
+                sta dmax_colour_change_counter
 
                 ; lda #sn_atten(1,1)
                 ; jsr sn_write
@@ -149,14 +154,14 @@ noise_control_set:
                 jsr sn_write
                 
 vsync_done:
+
+update_colour:
                 lda colour
                 inc a
                 cmp max_colour
-                bcc +
+                bcc got_colour
                 lda #0
-+
-
-                
+got_colour:
                 sta colour
 
                 ldy #31
@@ -183,9 +188,37 @@ fill_loop:
                 adc #32
                 sta dest+0
                 bcc dest_updated
+
+update_dmax_colour:                
+                dec dmax_colour_change_counter
+                bne update_dest_msb
+
+                ; C=1
+                lda max_colour
+                adc dmax_colour ;0=+1/$fe=-1
+                cmp #MAX_MAX_COLOUR+1
+                bcc max_max_ok
+max_max_breached:
+                ldx #MAX_MAX_COLOUR
+                bra toggle_dmax_colour
+max_max_ok:
+                cmp #MIN_MAX_COLOUR
+                bcs min_max_ok
+                ldx #MIN_MAX_COLOUR
+toggle_dmax_colour:
+                lda dmax_colour
+                eor #$fe
+                sta dmax_colour
+                txa
+min_max_ok:
+                sta max_colour
+                
+                lda #DMAX_COLOUR_CHANGE_COUNTER_VALUE
+                sta dmax_colour_change_counter
+
+update_dest_msb:
                 inc dest+1
                 bpl dest_updated
-                inc max_colour
                 lda #$30
                 sta dest+1
 dest_updated:
