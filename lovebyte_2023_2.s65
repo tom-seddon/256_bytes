@@ -1,0 +1,228 @@
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+;-------------------------------------------------------------------------
+
+*=$00
+                .dsection zp
+*=$1900
+                .dsection code
+
+nblobs=8
+
+;-------------------------------------------------------------------------
+
+                .section zp
+dest: .fill 2
+shift_outbits: .fill 1
+colour: .fill 1
+other_pixel: .fill 1
+max_colour: .fill 1
+noise_value: .fill 1
+                .endsection
+
+;-------------------------------------------------------------------------
+
+sn_freq_reg: .function ch
+                .cerror ch<0||ch>3,"invalid SN channel"
+                .endfunction $80|ch<<5
+
+sn_atten_reg: .function ch
+                .cerror ch<0||ch>3,"invalid SN channel"
+                .endfunction $80|ch<<5|$10
+                
+sn_atten: .function ch,atten
+                .cerror ch<0||ch>3,"invalid SN channel"
+                .cerror atten<0||atten>15,"invalid SN attenuation"
+                .endfunction sn_atten_reg(ch)|atten
+
+sn_freqh: .function ch,freq
+                .cerror ch<0||ch>3,"invalid SN channel"
+                .cerror freq<0||freq>1023,"invalid SN frequency"
+                .endfunction freq>>4
+
+sn_freql: .function ch,freq
+                .cerror ch<0||ch>3,"invalid SN channel"
+                .cerror freq<0||freq>1023,"invalid SN frequency"
+                .endfunction sn_freq_reg(ch)|freq&15
+                
+                .section code
+start:
+                lda #22
+                jsr oswrch
+                lda #2
+                jsr oswrch
+
+                sei
+                
+                ldx #$ff
+                stx system_via.ddra
+clear_zp_loop:
+                inx
+                stz 0,x
+                bpl clear_zp_loop
+
+                lda #$30
+                sta dest+1
+
+                lda #18
+                sta max_colour
+
+                ; lda #sn_atten(1,1)
+                ; jsr sn_write
+
+                ; ; silence startup beep on tone 3 
+                ; lda #sn_atten(0,15)
+                ; jsr sn_write
+
+main_loop:
+                ; bit wait_vsync
+                ; bpl vsync_done
+                
+                lda dest+0
+                sta shift_outbits
+                lda dest+1
+                ldx #3
+div8_loop:
+                lsr a
+                ror shift_outbits
+                dex
+                bne div8_loop
+
+                ldx #12
+                jsr write_crtc
+                lda shift_outbits
+                jsr write_crtc
+
+                lda #2
+wait_vsync_loop:
+                bit system_via.ifr
+                beq wait_vsync_loop
+                sta system_via.ifr
+
+                ; lda counter
+                
+
+                ; sound
+                ; lda $fe45
+                ; and #$0f
+                ; ora #%10010000  ;tone 3 volume
+                ; jsr sn_write
+
+                lda $fe44
+                sta shift_outbits
+                lda $fe45
+                lsr a
+                ror shift_outbits
+                lsr a
+                ror shift_outbits
+
+                and #3
+                cmp #3          ;only set fixed frequency noise
+                beq noise_control_set
+
+                cmp noise_value
+                beq noise_control_set
+
+                sta noise_value
+
+                ora #%11100100;sn_freq_reg(3)|4
+                jsr sn_write
+
+noise_control_set:
+                
+                lda shift_outbits
+                lsr a
+                lsr a
+                lsr a
+                and #$0f
+                ora #sn_atten_reg(3)
+                jsr sn_write
+
+                lda #sn_freq_reg(0)
+                jsr sn_write
+                
+                lda $fe44
+                adc $fe45
+                and #$0f
+                ora #$30
+                jsr sn_write
+                
+vsync_done:
+                lda colour
+                inc a
+                cmp max_colour
+                bcc +
+                lda #0
++
+
+                
+                sta colour
+
+                ldy #31
+fill_loop:
+                ldx colour
+                lda pixels,x
+                pha
+                sta (dest),y
+                dey
+
+                and #%10101010
+                lsr a           ;C=0
+                sta other_pixel
+                pla
+                and #%01010101
+                asl a           ;C=0
+                ora other_pixel
+                sta (dest),y
+                dey
+
+                bpl fill_loop
+
+                lda dest+0
+                adc #32
+                sta dest+0
+                bcc dest_updated
+                inc dest+1
+                bpl dest_updated
+                inc max_colour
+                lda #$30
+                sta dest+1
+dest_updated:
+
+                jmp main_loop
+
+write_crtc:
+                stx $fe00
+                sta $fe01
+                inx
+                rts
+
+sn_write: .proc
+                sta system_via.ora_no_handshake
+                stz system_via.orb
+                ldx #8
+                jsr +
+                stx system_via.orb
++
+                rts
+                .endproc
+                
+pixels:
+                .byte $00
+                .byte $20
+                .byte $30
+                .byte $12
+                .byte $03
+                .byte $23
+                .byte $33
+                .byte $19
+                .byte $0c
+                .byte $2c
+                .byte $3c
+                .byte $1e
+                .byte $0f
+                .byte $2f
+                .byte $3f
+                
+                .endsection

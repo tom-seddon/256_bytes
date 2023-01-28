@@ -37,10 +37,16 @@ build: _folders
 	$(MAKE) _assemble_and_ssd SRC=alien_daydream BBC=ALIEN SSD=alien_daydream
 	$(MAKE) build_r22
 	$(MAKE) build_lovebyte_2023
+	$(MAKE) build_lovebyte_2023_2
 
 .PHONY:build_lovebyte_2023
 build_lovebyte_2023:
 	$(MAKE) _assemble_and_ssd SRC=lovebyte_2023 BBC=LB23 SSD=lovebyte_2023
+
+.PHONY:build_lovebyte_2023_2
+build_lovebyte_2023_2:
+	$(MAKE) _assemble_and_ssd SRC=lovebyte_2023_2 BBC=LB23_2 SSD=lovebyte_2023_2
+
 .PHONY:build_r22
 build_r22: _folders
 	$(MAKE) _assemble SRC=r22 BBC=r22
@@ -109,6 +115,7 @@ dist:
 	$(SHELLCMD) copy-file "$(TMP)/2_scrollers.ssd" "$(_SSD)/"
 	$(SHELLCMD) copy-file "$(TMP)/alien_daydream.ssd" "$(_SSD)/"
 	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023.ssd" "$(_SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023_2.ssd" "$(_SSD)/"
 
 ##########################################################################
 ##########################################################################
@@ -124,6 +131,7 @@ dist_and_upload:
 	$(MAKE) _github.io NAME=2_scrollers.ssd
 	$(MAKE) _github.io NAME=alien_daydream.ssd
 	$(MAKE) _github.io NAME=lovebyte_2023.ssd
+	$(MAKE) _github.io NAME=lovebyte_2023_2.ssd
 	cd "$(GITHUB_IO)" && git push
 
 .PHONY:_github.io
@@ -137,8 +145,8 @@ _github.io:
 # for me, on my laptop
 .PHONY:tom_laptop
 tom_laptop:
-	$(MAKE) build_lovebyte_2023
-	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=lovebyte_2023
+	$(MAKE) build_lovebyte_2023_2
+	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=lovebyte_2023_2
 
 .PHONY:b2
 b2:
