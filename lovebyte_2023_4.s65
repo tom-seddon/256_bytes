@@ -51,9 +51,10 @@ mode2_value: .function left_,right_
                 .section zp
 dest: .fill 2
 crtc_addr_lsb: .fill 1
-fx: .fill 1
-fy: .fill 2
+fy: .fill 1
+fx: .fill 2
 counter: .fill 1
+sound_tmp: .fill 1
                 .endsection
 
 ;-------------------------------------------------------------------------
@@ -72,7 +73,7 @@ init_loop:
                 
                 sei
 
-                ; stx system_via.ddra
+                stx system_via.ddra
 
 clear_zp_loop:
                 inx
@@ -92,50 +93,59 @@ wait_for_vblank_loop:
                 beq wait_for_vblank_loop
                 sta system_via.ifr
 
-                lda #79
-                sta fx
+                lda #31
+                sta fy
 
-fill_row_loop:
-                jsr fun
+fill_column_loop:
+                jsr sierpinski
 
                 and #7
                 tax
                 lda pixels,x
 
-                ldy #1
+                ldy #7
 fill_char_loop:
                 sta (dest),y
                 dey
                 bpl fill_char_loop
 
                 clc
-                lda dest+0
-                adc #8 
+                lda #$80
+                ldy fy
+                bne +
+                lda #$78
++
+                adc dest+0
                 sta dest+0
                 sta crtc_addr_lsb
 
                 lda dest+1
-                adc #$00
+                adc #$02
                 bpl dest_updated
-                lda #$30
+                sec
+                sbc #$50
 dest_updated:
                 sta dest+1
                 
-                dec fx
-                bpl fill_row_loop
+                dec fy
+                bpl fill_column_loop
 
-                inc fy+0
-                bne fy_updated
-                inc fy+1
-fy_updated:
+                inc fx+0
+                bne fx_updated
+                inc fx+1
+fx_updated:
 
-;                 clc
-;                 adc #$0a        ;+2560
-;                 bpl +
-;                 sbc #$4f
-; +
-                
-                ; lda dest+1
+                lda fx+0
+                ora #$80
+                sta sound_tmp
+
+                lda fx+0
+                lsr a
+                and #15
+                ora sound_tmp
+                jsr sn_write
+
+                lda dest+1
                 ldy #3
 div8_loop:
                 lsr a
@@ -151,33 +161,50 @@ div8_loop:
                 lda crtc_addr_lsb
                 sta $fe01
 
-                
-halt:
-                lda fy
-                cmp #7
-                beq halt
-                
                 jmp main_loop
 
-fun: .proc
+                bmi +
++
+
+waves: .proc
+                lda fx
+                and #31
+                cmp fy
+                bcc sierpinski.bg
+                bra sierpinski.fg
+                .endproc
+
+sierpinski: .proc
                 lda fy
                 and fx
-                bne +
-                lda #fy+0
-+
+                bne bg
+fg:
+                lda fx
+                rts
+
+bg:
+                lda #7
                 rts
                 .endproc
-                
-pixels:
-                .byte mode2_value(0,0)
-                .byte mode2_value(4,4)
-                .byte mode2_value(1,1)
-                .byte mode2_value(5,5)
-                .byte mode2_value(2,2)
-                .byte mode2_value(6,6)
-                .byte mode2_value(3,3)
-                .byte mode2_value(7,7)
 
+sn_write:
+                sta system_via.ora_no_handshake
+
+                stz system_via.orb
+pixels:
+                .byte $3f       ;7,7 = 1-byte NOP = nop +1 1
+                .byte $3c       ;6,6 = 1-byte NOP = nop +1 2
+                .byte $0f       ;3,3 = BIT abs,x  = BIT $330c,x +4 6
+                .byte $0c       ;2,2 = TSB abs    = -
+                .byte $33       ;5,5 = 1-byte NOP = -
+                .byte $03       ;1,1 = 1-byte NOP = nop +1 7
+                .byte $30       ;4,4 = BMI        = bmi +2/+3 9/10
+                .byte $00       ;0,0 = BRK        = -
+
+                ldx #8          ;+2 11
+                stx system_via.orb ;+4 15
+                rts
+                
 init:
                 .byte 5
                 .byte 2,22
