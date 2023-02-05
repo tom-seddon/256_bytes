@@ -49,7 +49,6 @@ mode2_value: .function left_,right_
 ;-------------------------------------------------------------------------
 
                 .section zp
-dest: .fill 2
 crtc_addr_lsb: .fill 1
 fy: .fill 1
 fx: .fill 2
@@ -57,36 +56,29 @@ counter: .fill 1
 sound_tmp: .fill 1
                 .endsection
 
+                ; 2 bytes. must be at this specific address.
+dest=$7f
+
 ;-------------------------------------------------------------------------
 
                 .section code
 start:
-                
-                ldx #init_end-init
+                ldx #$7f
+                stx dest+1
 init_loop:
+                stz 0,x
+                cpx #init_end-init
+                bcs +
                 lda init,x
                 jsr oswrch
++
                 dex
                 bpl init_loop
 
-                sta $ffff
-                
                 sei
-
                 stx system_via.ddra
 
-clear_zp_loop:
-                inx
-                stz 0,x
-                bpl clear_zp_loop
-
-                ; "dec dest+1"?
-                lda #$7b
-                sta dest+1
-
 main_loop:
-                ; jsr osrdch
-
                 lda #2
 wait_for_vblank_loop:
                 bit system_via.ifr
@@ -122,8 +114,8 @@ fill_char_loop:
                 lda dest+1
                 adc #$02
                 bpl dest_updated
-                sec
-                sbc #$50
+                ; C=0
+                sbc #$4f
 dest_updated:
                 sta dest+1
                 
@@ -154,17 +146,15 @@ div8_loop:
                 bne div8_loop
 
                 ldx #12
+set_crtc_addr_loop:
                 stx $fe00
                 sta $fe01
-                inx
-                stx $fe00
                 lda crtc_addr_lsb
-                sta $fe01
+                inx
+                cpx #14
+                bne set_crtc_addr_loop
 
                 jmp main_loop
-
-                bmi +
-+
 
 waves: .proc
                 lda fx
