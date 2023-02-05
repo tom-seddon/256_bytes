@@ -8,7 +8,7 @@
 *=$1900
                 .dsection code
 
-DMAX_COLOUR_CHANGE_COUNTER_VALUE=12
+DMAX_COLOUR_CHANGE_COUNTER_VALUE=7
 MIN_MAX_COLOUR=16
 MAX_MAX_COLOUR=24
                 
@@ -168,22 +168,12 @@ got_colour:
 fill_loop:
                 ldx colour
                 lda pixels,x
-                pha
-                sta (dest),y
-                dey
-
-                and #%10101010
-                lsr a           ;C=0
-                sta other_pixel
-                pla
-                and #%01010101
-                asl a           ;C=0
-                ora other_pixel
                 sta (dest),y
                 dey
 
                 bpl fill_loop
 
+                clc
                 lda dest+0
                 adc #32
                 sta dest+0

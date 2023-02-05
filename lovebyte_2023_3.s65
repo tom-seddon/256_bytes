@@ -1,0 +1,202 @@
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+;-------------------------------------------------------------------------
+
+sn_freq_reg: .function ch
+                .cerror ch<0||ch>3,"invalid SN channel"
+                .endfunction $80|ch<<5
+
+sn_atten_reg: .function ch
+                .cerror ch<0||ch>3,"invalid SN channel"
+                .endfunction $80|ch<<5|$10
+                
+sn_atten: .function ch,atten
+                .cerror ch<0||ch>3,"invalid SN channel"
+                .cerror atten<0||atten>15,"invalid SN attenuation"
+                .endfunction sn_atten_reg(ch)|atten
+
+sn_freqh: .function freq
+                .cerror freq<0||freq>1023,"invalid SN frequency"
+                .endfunction freq>>4
+
+sn_freql: .function ch,freq
+                .cerror freq<0||freq>1023,"invalid SN frequency"
+                .endfunction sn_freq_reg(ch)|freq&15
+
+colour_from_brightness_index: .function index
+                .cerror index<0||index>7,"invalid colour index"
+                .endfunction (index&1)<<2|(index&2)>>1|(index&4)>>1
+                
+mode2_left_value: .function colour_
+                .cerror colour_<0||colour_>15,"invalid mode 2 colour"
+                .endfunction (colour_&8)<<4|(colour_&4)<<3|(colour_&2)<<2|(colour_&1)<<1
+
+mode2_value: .function left_,right_
+                .endfunction mode2_left_value(left_)|mode2_left_value(right_)>>1
+
+;-------------------------------------------------------------------------
+
+*=$00
+                .dsection zp
+                .cerror *>init_text_end-init_text_begin-1,"need to rethink ZP initialization"
+*=$1900
+                .dsection code
+
+; DMAX_COLOUR_CHANGE_COUNTER_VALUE=7
+; MIN_MAX_COLOUR=16
+; MAX_MAX_COLOUR=24
+                
+;-------------------------------------------------------------------------
+
+                .section zp
+dest: .fill 2
+colour: .fill 2
+dcolour: .fill 2
+max_colour: .fill 1
+                .endsection
+
+;-------------------------------------------------------------------------
+
+                .section code
+start:
+                ldx #init_text_end-init_text_begin-1
+init_loop:
+                ; This is the VDU variable VDU20 queries when
+                ; resetting the palette.
+                lda #15
+                sta $360
+                
+                lda init_text_begin,x
+                jsr oswrch
+
+                ; 
+                stz 0,x
+
+                dex
+                bpl init_loop
+
+                stx system_via.ddra ;X=$ff
+                stz video_ula_control
+
+                sei
+                
+                lda #$7c
+                sta dest+1
+
+                lda #1
+                sta $fe00
+                lda #37
+                sta $fe01
+
+                lda #$80
+                sta dcolour+0
+
+                lda #3
+                sta max_colour
+
+main_loop:
+                lda #2
+wait_vsync_loop:
+                bit system_via.ifr
+                beq wait_vsync_loop
+                sta system_via.ifr
+
+                jsr iteration
+                jsr iteration
+                jsr iteration
+                
+                ldx #13
+                stx $fe00
+                lda dest+0
+                sta $fe01
+
+                dex
+                stx $fe00
+                lda dest+1
+                eor #($7c^$28)
+                sta $fe01
+
+                jmp main_loop
+
+iteration:
+                ldx #0
+                lda colour+1
+                cmp max_colour
+                bcs got_colour_index
+                and #7
+                tax
+got_colour_index:
+                lda mode2_bytes,x
+                sta (dest)
+
+update_colour:
+                clc
+                lda colour+0
+                adc dcolour+0
+                sta colour+0
+                bcc colour_updated
+                lda colour+1
+                inc a
+                cmp max_colour
+                bcc colour_msb_updated
+                lda #0
+colour_msb_updated:
+                sta colour+1
+colour_updated:
+
+update_dcolour:
+                clc
+                lda dcolour+0
+                adc #$80
+                sta dcolour+0
+                bcc dcolour_msb_updated
+                inc dcolour+1
+                bne dcolour_msb_updated
+                inc max_colour
+dcolour_msb_updated:
+
+update_dest:
+                inc dest+0
+                bne dest_updated
+                inc dest+1
+                bpl dest_updated
+                lda #$7c
+                sta dest+1
+dest_updated:
+                rts
+                
+init_text_begin:
+                .byte 20
+sn_write:
+                ; VDU 23 bytes 6,7,8: ignored
+                sta system_via.ora_no_handshake
+
+                ; VDU 23 bytes 3,4,5: ignored
+                stz system_via.orb
+
+                ; VDU 23 byte 2: $19 (R4 value)
+                ; VDU 23 byte 1: $06 (CRTC register 6)
+                ; VDU 23 byte 0: $00 (write CRTC)
+                ora $0006,y     ;19 06 00
+
+                ; VDU 23
+                .byte $17       ;1-byte NOP on 65c12
+
+                ; VDU 22 byte 0: 5 (mode 5)
+                ; VDU 22
+                ora $16         ;05 16
+init_text_end:
+                jsr +
+                ldx #8
+                stx system_via.orb
++
+                rts
+
+mode2_bytes:
+                .for i=0,i<8,i+=1
+j:=colour_from_brightness_index(i)
+                .byte mode2_value(j,j)
+                .endfor   
+
+                .endsection

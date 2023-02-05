@@ -38,6 +38,7 @@ build: _folders
 	$(MAKE) build_r22
 	$(MAKE) build_lovebyte_2023
 	$(MAKE) build_lovebyte_2023_2
+	$(MAKE) build_lovebyte_2023_3
 
 .PHONY:build_lovebyte_2023
 build_lovebyte_2023:
@@ -46,6 +47,14 @@ build_lovebyte_2023:
 .PHONY:build_lovebyte_2023_2
 build_lovebyte_2023_2:
 	$(MAKE) _assemble_and_ssd SRC=lovebyte_2023_2 BBC=LB23_2 SSD=lovebyte_2023_2
+
+.PHONY:build_lovebyte_2023_3
+build_lovebyte_2023_3:
+	$(MAKE) _assemble_and_ssd SRC=lovebyte_2023_3 BBC=LB23_3 SSD=lovebyte_2023_3
+
+.PHONY:build_lovebyte_2023_4
+build_lovebyte_2023_4:
+	$(MAKE) _assemble_and_ssd SRC=lovebyte_2023_4 BBC=LB23_4 SSD=lovebyte_2023_4
 
 .PHONY:build_r22
 build_r22: _folders
@@ -116,6 +125,8 @@ dist:
 	$(SHELLCMD) copy-file "$(TMP)/alien_daydream.ssd" "$(_SSD)/"
 	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023.ssd" "$(_SSD)/"
 	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023_2.ssd" "$(_SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023_3.ssd" "$(_SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023_4.ssd" "$(_SSD)/"
 
 ##########################################################################
 ##########################################################################
@@ -132,6 +143,8 @@ dist_and_upload:
 	$(MAKE) _github.io NAME=alien_daydream.ssd
 	$(MAKE) _github.io NAME=lovebyte_2023.ssd
 	$(MAKE) _github.io NAME=lovebyte_2023_2.ssd
+	$(MAKE) _github.io NAME=lovebyte_2023_3.ssd
+	$(MAKE) _github.io NAME=lovebyte_2023_4.ssd
 	cd "$(GITHUB_IO)" && git push
 
 .PHONY:_github.io
@@ -145,8 +158,8 @@ _github.io:
 # for me, on my laptop
 .PHONY:tom_laptop
 tom_laptop:
-	$(MAKE) build_lovebyte_2023_2
-	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=lovebyte_2023_2
+	$(MAKE) build_lovebyte_2023_4
+	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=lovebyte_2023_4
 
 .PHONY:b2
 b2:
