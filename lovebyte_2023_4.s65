@@ -99,8 +99,8 @@ fill_char_loop:
                 bpl fill_char_loop
 
                 ;
-                ; lsr a
-                ora fx
+                dec a
+                eor fx
                 ora #$80
                 sta system_via.ora_no_handshake
                 
