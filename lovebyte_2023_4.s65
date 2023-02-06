@@ -128,14 +128,27 @@ dest_updated:
 fx_updated:
 
                 lda fx+0
+                asl a
+                asl a
+                asl a
                 ora #$80
-                sta sound_tmp
-
-                lda fx+0
-                lsr a
-                and #15
-                ora sound_tmp
                 jsr sn_write
+
+                
+
+                ; lda fx+0
+                ; asl a
+                ; asl a
+                ; asl a
+                ; asl a
+                ; and #$f0
+                ; ora #$80
+                ; sta sound_tmp
+
+                ; lda fx+0
+                ; and #15
+                ; ora sound_tmp
+                ; jsr sn_write
 
                 lda dest+1
                 ldy #3
