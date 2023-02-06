@@ -39,6 +39,7 @@ build: _folders
 	$(MAKE) build_lovebyte_2023
 	$(MAKE) build_lovebyte_2023_2
 	$(MAKE) build_lovebyte_2023_3
+	$(MAKE) build_lovebyte_2023_4
 
 .PHONY:build_lovebyte_2023
 build_lovebyte_2023:
