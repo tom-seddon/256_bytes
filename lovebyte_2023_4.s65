@@ -98,6 +98,28 @@ fill_char_loop:
                 dey
                 bpl fill_char_loop
 
+                ;
+                ; lsr a
+                ora fx
+                ora #$80
+                sta system_via.ora_no_handshake
+                
+orb_ptr=*+1
+                stz system_via.orb
+                
+pixels:
+                .byte $3f       ;7,7 = 1-byte NOP = nop +1 1
+                .byte $3c       ;6,6 = 1-byte NOP = nop +1 2
+                .byte $0f       ;3,3 = BIT abs,x  = BIT $330c,x +4 6
+                .byte $0c       ;2,2 = TSB abs    = -
+                .byte $33       ;5,5 = 1-byte NOP = -
+                .byte $03       ;1,1 = 1-byte NOP = nop +1 7
+                .byte $30       ;4,4 = BMI        = bmi +2/+3 9/10
+                .byte $00       ;0,0 = BRK        = -
+
+                lda #8
+                sta (orb_ptr)
+
                 lda #$80
                 cpx #0
                 bne +
@@ -143,41 +165,11 @@ crtc_addr_lsb=*+1
 
                 bra main_loop
 
-; waves: .proc
-;                 lda fx
-;                 and #31
-;                 cmp fy
-;                 bcc sierpinski.bg
-;                 bra sierpinski.fg
-;                 .endproc
-
-; sierpinski: .proc
-;                 lda fy
-;                 and fx
-;                 bne bg
-; fg:
-;                 lda fx
-;                 rts
-
-; bg:
-;                 lda #7
-;                 rts
-;                 .endproc
-
 ; sn_write:
 ;                 sta system_via.ora_no_handshake
 
 ; orb_ptr:=*+1
 ;                 stz system_via.orb
-pixels:
-                .byte $3f       ;7,7 = 1-byte NOP = nop +1 1
-                .byte $3c       ;6,6 = 1-byte NOP = nop +1 2
-                .byte $0f       ;3,3 = BIT abs,x  = BIT $330c,x +4 6
-                .byte $0c       ;2,2 = TSB abs    = -
-                .byte $33       ;5,5 = 1-byte NOP = -
-                .byte $03       ;1,1 = 1-byte NOP = nop +1 7
-                .byte $30       ;4,4 = BMI        = bmi +2/+3 9/10
-                .byte $00       ;0,0 = BRK        = -
 
                 ; ldx #8          ;+2 11
                 ; stx system_via.orb ;+4 15
