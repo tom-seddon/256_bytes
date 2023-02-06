@@ -55,18 +55,18 @@ zp_start:
 
                 .section code
 start:
-                ldx #3
+                ldx #$fd
 init_loop:
-                lda init,x
+                lda init+3,x
                 ; the initial value of fx isn't important. Might as
                 ; well use the $ff of $ffee.
 fx:=*+2
                 jsr oswrch
-                dex
-                bpl init_loop
-
                 sei
                 stx system_via.ddra
+dest:
+                inx             ;$e8
+                bmi init_loop   ;$30
 
 main_loop:
                 lda #2
@@ -76,7 +76,6 @@ ifr_ptr=*+1
                 beq wait_for_vblank_loop
                 sta (ifr_ptr)
 
-                ; sta fy
                 ldx #31
 
 fill_column_loop:
@@ -95,8 +94,7 @@ got_colour:
                 
                 ldy #7
 fill_char_loop:
-dest=*+1
-                sta $7f00,y
+                sta (dest),y
                 dey
                 bpl fill_char_loop
 
@@ -186,5 +184,5 @@ pixels:
                 ; rts
                 
 init:
-                .byte 5,2,22
+                .byte 22,2,5
                 .endsection
