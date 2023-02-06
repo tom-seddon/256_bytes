@@ -37,10 +37,10 @@ mode2_value: .function left_,right_
 
 ;-------------------------------------------------------------------------
 
-*=$00
-                .dsection zp
-*=$1900
+*=0
                 .dsection code
+zp_start:
+                .dsection zp
 
 ; DMAX_COLOUR_CHANGE_COUNTER_VALUE=7
 ; MIN_MAX_COLOUR=16
@@ -49,55 +49,52 @@ mode2_value: .function left_,right_
 ;-------------------------------------------------------------------------
 
                 .section zp
-crtc_addr_lsb: .fill 1
-fy: .fill 1
-fx: .fill 2
-counter: .fill 1
-sound_tmp: .fill 1
                 .endsection
-
-                ; 2 bytes. must be at this specific address.
-dest=$7f
 
 ;-------------------------------------------------------------------------
 
                 .section code
 start:
-                ldx #$7f
-                stx dest+1
+                ldx #$ff-(vars_end-vars_begin)
 init_loop:
-                stz 0,x
-                cpx #init_end-init
-                bcs +
-                lda init,x
+                stz vars_end+1,x
+                lda init+1+(vars_end-vars_begin),x
                 jsr oswrch
-+
-                dex
-                bpl init_loop
-
                 sei
                 stx system_via.ddra
+                inx             ;$e8
+                bmi init_loop   ;$30 nn
+
 
 main_loop:
                 lda #2
 wait_for_vblank_loop:
+ifr_ptr=*+1
                 bit system_via.ifr
                 beq wait_for_vblank_loop
-                sta system_via.ifr
+                sta (ifr_ptr)
 
                 lda #31
                 sta fy
 
 fill_column_loop:
-                jsr sierpinski
+                ldx #7
 
+                lda fy
+                and fx
+                bne got_colour
+
+                lda fx
                 and #7
                 tax
-                lda pixels,x
 
+got_colour:
+                lda pixels,x
+                
                 ldy #7
 fill_char_loop:
-                sta (dest),y
+dest=*+1
+                sta $7f00,y
                 dey
                 bpl fill_char_loop
 
@@ -123,16 +120,14 @@ dest_updated:
                 bpl fill_column_loop
 
                 inc fx+0
-                bne fx_updated
-                inc fx+1
 fx_updated:
 
-                lda fx+0
-                asl a
-                asl a
-                asl a
-                ora #$80
-                jsr sn_write
+                ; lda fx+0
+                ; asl a
+                ; asl a
+                ; asl a
+                ; ora #$80
+                ; jsr sn_write
 
                 
 
@@ -162,33 +157,34 @@ div8_loop:
 set_crtc_addr_loop:
                 stx $fe00
                 sta $fe01
-                lda crtc_addr_lsb
+crtc_addr_lsb=*+1
+                lda #$ff
                 inx
                 cpx #14
                 bne set_crtc_addr_loop
 
                 jmp main_loop
 
-waves: .proc
-                lda fx
-                and #31
-                cmp fy
-                bcc sierpinski.bg
-                bra sierpinski.fg
-                .endproc
+; waves: .proc
+;                 lda fx
+;                 and #31
+;                 cmp fy
+;                 bcc sierpinski.bg
+;                 bra sierpinski.fg
+;                 .endproc
 
-sierpinski: .proc
-                lda fy
-                and fx
-                bne bg
-fg:
-                lda fx
-                rts
+; sierpinski: .proc
+;                 lda fy
+;                 and fx
+;                 bne bg
+; fg:
+;                 lda fx
+;                 rts
 
-bg:
-                lda #7
-                rts
-                .endproc
+; bg:
+;                 lda #7
+;                 rts
+;                 .endproc
 
 sn_write:
                 sta system_via.ora_no_handshake
@@ -209,7 +205,14 @@ pixels:
                 rts
                 
 init:
+                .byte 22,2
                 .byte 5
-                .byte 2,22
 init_end:
+
+vars_begin:
+fy: .fill 1
+fx: .fill 1
+counter: .fill 1
+sound_tmp: .fill 1
+vars_end:
                 .endsection
