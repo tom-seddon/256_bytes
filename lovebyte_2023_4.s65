@@ -76,8 +76,8 @@ ifr_ptr=*+1
                 beq wait_for_vblank_loop
                 sta (ifr_ptr)
 
-                ldx #31
                 ; sta fy
+                ldx #31
 
 fill_column_loop:
                 ldy #7
@@ -110,8 +110,9 @@ dest=*+1
                 sta dest+0
                 sta crtc_addr_lsb
 
-                lda dest+1
-                adc #$02
+                lda #$02
+                tay             ;Y=2
+                adc dest+1
                 bpl dest_updated
                 ; C=0
                 sbc #$4f
@@ -121,40 +122,17 @@ dest_updated:
                 dex
                 bpl fill_column_loop
 
-                inc fx+0
-fx_updated:
+                inc fx
 
-                ; lda fx+0
-                ; asl a
-                ; asl a
-                ; asl a
-                ; ora #$80
-                ; jsr sn_write
-
-                
-
-                ; lda fx+0
-                ; asl a
-                ; asl a
-                ; asl a
-                ; asl a
-                ; and #$f0
-                ; ora #$80
-                ; sta sound_tmp
-
-                ; lda fx+0
-                ; and #15
-                ; ora sound_tmp
-                ; jsr sn_write
-
+                ; Y=2
                 lda dest+1
-                ldy #3
 div8_loop:
                 lsr a
                 ror crtc_addr_lsb
                 dey
-                bne div8_loop
+                bpl div8_loop
 
+                ; Y=$ff
                 ldx #12
 set_crtc_addr_loop:
                 stx $fe00
@@ -162,8 +140,8 @@ set_crtc_addr_loop:
 crtc_addr_lsb=*+1
                 lda #$ff
                 inx
-                cpx #14
-                bne set_crtc_addr_loop
+                iny
+                beq set_crtc_addr_loop
 
                 bra main_loop
 
