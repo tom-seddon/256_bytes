@@ -120,9 +120,9 @@ dest_updated:
                 dex
                 bpl fill_column_loop
 
-                eor fx
-                rol a
-                ; and #%10111111  ;no noise
+                asl a
+                sbc crtc_addr_lsb
+                ror a
                 sta system_via.ora_no_handshake
                 
 orb_ptr=*+1

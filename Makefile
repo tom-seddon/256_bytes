@@ -55,7 +55,7 @@ build_lovebyte_2023_3:
 
 .PHONY:build_lovebyte_2023_4
 build_lovebyte_2023_4:
-	$(MAKE) _assemble_and_ssd SRC=lovebyte_2023_4 BBC=LB23_4 SSD=lovebyte_2023_4
+	$(MAKE) _assemble_and_ssd SRC=lovebyte_2023_4 BBC=MOTT SSD=lovebyte_2023_4
 
 .PHONY:build_r22
 build_r22: _folders
