@@ -1,0 +1,15 @@
+March of the Triangles
+https://github.com/tom-seddon/256_bytes/
+
+For the BBC Master 128. 128 bytes.
+Lovebyte, Feb 2023
+
+By Tom Seddon of the Bitshifters Collective.
+
+Visit us at: https://bitshifters.github.io/
+
+Should work on any stock BBC Master 128 computer.
+To catalogue the disc type: *CAT
+To check filesize type: *INFO MOTT
+Gives: <dir>.<filename> <load address> <exec address> <size in hex> <sector no>
+To run, press Shift+BREAK, or type: *RUN MOTT
