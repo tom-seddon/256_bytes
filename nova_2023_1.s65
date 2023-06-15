@@ -1,0 +1,219 @@
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+; refinement of lovebyte_2023_2
+                
+;-------------------------------------------------------------------------
+
+*=$00
+                .dsection zp
+*=$1900
+                .dsection code
+
+DMAX_COLOUR_CHANGE_COUNTER_VALUE=10
+MIN_MAX_COLOUR=16
+MAX_MAX_COLOUR=22
+                
+;-------------------------------------------------------------------------
+
+                .section zp
+dest: .fill 2
+crtc: .fill 2
+colour: .fill 1
+other_pixel: .fill 1
+max_colour: .fill 1
+dmax_colour: .fill 1
+noise_value: .fill 1
+dmax_colour_change_counter: .fill 1
+loop_counter: .fill 1
+                .endsection
+
+;-------------------------------------------------------------------------
+
+sn_freq_reg: .function ch
+                .cerror ch<0||ch>3,"invalid SN channel"
+                .endfunction $80|ch<<5
+
+sn_atten_reg: .function ch
+                .cerror ch<0||ch>3,"invalid SN channel"
+                .endfunction $80|ch<<5|$10
+                
+sn_atten: .function ch,atten
+                .cerror ch<0||ch>3,"invalid SN channel"
+                .cerror atten<0||atten>15,"invalid SN attenuation"
+                .endfunction sn_atten_reg(ch)|atten
+
+sn_freqh: .function freq
+                .cerror freq<0||freq>1023,"invalid SN frequency"
+                .endfunction freq>>4
+
+sn_freql: .function ch,freq
+                .cerror freq<0||freq>1023,"invalid SN frequency"
+                .endfunction sn_freq_reg(ch)|freq&15
+                
+                .section code
+start:
+                lda #22
+                jsr oswrch
+                lda #2
+                jsr oswrch
+
+                sei
+                
+                ldx #$ff
+                stx system_via.ddra
+clear_zp_loop:
+                inx
+                stz 0,x
+                bpl clear_zp_loop
+
+                lda #$30
+                sta dest+1
+
+                lda #6
+                sta crtc+1
+
+                lda #MIN_MAX_COLOUR
+                sta max_colour
+
+                lda #DMAX_COLOUR_CHANGE_COUNTER_VALUE
+                sta dmax_colour_change_counter
+
+                ; lda #sn_atten(1,1)
+                ; jsr sn_write
+
+                ; ; silence startup beep on tone 3 
+                ; lda #sn_atten(0,15)
+                ; jsr sn_write
+
+main_loop:
+                lda #19
+                sta loop_counter
+blocks_loop:
+                lda colour
+                inc a
+                cmp max_colour
+                bcc got_colour
+                lda #0
+got_colour:
+                sta colour
+
+                ldy #7
+                lda #0
+                ldx colour
+                cpx #pixels_end-pixels
+                bcs fill_loop
+                lda pixels,x
+fill_loop:
+                sta (dest),y
+                dey
+                bpl fill_loop
+
+                inc crtc+0
+                bne got_crtc
+                ldx crtc+1
+                inx
+                cpx #$10
+                bcc got_crtc_msb
+                ldx #$06
+got_crtc_msb:
+                stx crtc+1
+got_crtc:
+
+                clc
+                lda dest+0
+                adc #8
+                sta dest+0
+                bcc dest_updated
+
+update_dmax_colour:                
+                dec dmax_colour_change_counter
+                bne update_dest_msb
+
+                ; C=1
+                lda max_colour
+                adc dmax_colour ;0=+1/$fe=-1
+                cmp #MAX_MAX_COLOUR+1
+                bcc max_max_ok
+max_max_breached:
+                ldx #MAX_MAX_COLOUR
+                bra toggle_dmax_colour
+max_max_ok:
+                cmp #MIN_MAX_COLOUR
+                bcs min_max_ok
+                ldx #MIN_MAX_COLOUR
+toggle_dmax_colour:
+                lda dmax_colour
+                eor #$fe
+                sta dmax_colour
+                txa
+min_max_ok:
+                sta max_colour
+                
+                lda #DMAX_COLOUR_CHANGE_COUNTER_VALUE
+                sta dmax_colour_change_counter
+
+update_dest_msb:
+                inc dest+1
+                bpl dest_updated
+                lda #$30
+                sta dest+1
+
+dest_updated:
+                dec loop_counter
+                bne blocks_loop
+
+                ldy #12
+                ldx #crtc+1
+                jsr write_crtc_zp
+                jsr write_crtc_zp
+
+
+                lda #2
+wait_vsync_loop:
+                bit system_via.ifr
+                beq wait_vsync_loop
+                sta system_via.ifr
+
+                jmp main_loop
+
+write_crtc_zp:
+                lda 0,x
+                dex
+write_crtc:
+                sty $fe00
+                sta $fe01
+                iny
+                rts
+
+sn_write: .proc
+                sta system_via.ora_no_handshake
+                stz system_via.orb
+                ldx #8
+                jsr +
+                jsr +
+                stx system_via.orb
++
+                rts
+                .endproc
+                
+pixels:
+                .byte $00
+                .byte $20
+                .byte $30
+                .byte $12
+                .byte $03
+                .byte $23
+                .byte $33
+                .byte $19
+                .byte $0c
+                .byte $2c
+                .byte $3c
+                .byte $1e
+                .byte $0f
+                .byte $2f
+                .byte $3f
+pixels_end:
+                
+                .endsection
+                

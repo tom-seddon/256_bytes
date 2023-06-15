@@ -40,6 +40,7 @@ build: _folders
 	$(MAKE) build_lovebyte_2023_2
 	$(MAKE) build_lovebyte_2023_3
 	$(MAKE) build_lovebyte_2023_4
+	$(MAKE) build_nova_2023_1
 
 .PHONY:build_lovebyte_2023
 build_lovebyte_2023:
@@ -56,6 +57,10 @@ build_lovebyte_2023_3:
 .PHONY:build_lovebyte_2023_4
 build_lovebyte_2023_4:
 	$(MAKE) _assemble_and_ssd SRC=lovebyte_2023_4 BBC=MOTT SSD=lovebyte_2023_4
+
+.PHONY:build_nova_2023_1
+build_nova_2023_1:
+	$(MAKE) _assemble_and_ssd SRC=nova_2023_1 BBC=NOVA231 SSD=nova_2023_1
 
 .PHONY:build_r22
 build_r22: _folders
@@ -128,6 +133,7 @@ dist:
 	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023_2.ssd" "$(_SSD)/"
 	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023_3.ssd" "$(_SSD)/"
 	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023_4.ssd" "$(_SSD)/"
+	$(SHELLCMD) copy-file "$(TMP)/nova_2023_1.ssd" "$(_SSD)/"
 
 ##########################################################################
 ##########################################################################
@@ -146,21 +152,25 @@ dist_and_upload:
 	$(MAKE) _github.io NAME=lovebyte_2023_2.ssd
 	$(MAKE) _github.io NAME=lovebyte_2023_3.ssd
 	$(MAKE) _github.io NAME=lovebyte_2023_4.ssd
+	$(MAKE) _github.io NAME=nova_2023_1.ssd
 	cd "$(GITHUB_IO)" && git push
 
 .PHONY:_github.io
 _github.io:
 	cp "$(TMP)/$(NAME)" "$(GITHUB_IO)/"
 	cd "$(GITHUB_IO)" && git add "$(NAME)" && git commit --allow-empty -m "Add/update $(NAME)." "$(NAME)"
+# model=Master isn't always appropriate, but it's easy enough to remove...
+	@echo "https://bbc.godbolt.org/?&disc=https://tom-seddon.github.io/$(NAME)&autoboot&model=Master"
 
 ##########################################################################
 ##########################################################################
 
 # for me, on my laptop
 .PHONY:tom_laptop
+tom_laptop: _TARGET=nova_2023_1
 tom_laptop:
-	$(MAKE) build_lovebyte_2023_4
-	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=lovebyte_2023_4
+	$(MAKE) build_$(_TARGET)
+	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=$(_TARGET)
 
 .PHONY:b2
 b2:

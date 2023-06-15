@@ -5,3 +5,4 @@
 $.TEST diff=bbcbasic
 $.SINES diff=bbcbasic
 $.SINESTABLE diff=bbcbasic
+$.16B diff=bbcbasic
