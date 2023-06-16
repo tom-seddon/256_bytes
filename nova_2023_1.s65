@@ -65,7 +65,7 @@ zp_code_actual_start:
                 ; jsr sn_write
 
 main_loop:
-                ldx #19
+                ldy #19
 blocks_loop:
 colour=*+1;;;;;;;;;;;;;;;;;<--note
                 lda #0;;;;;<--note
@@ -77,16 +77,16 @@ got_colour:
                 sta colour
 
                 lda #0
-                ldy colour
-                cpy #pixels_end-pixels
+                ldx colour
+                cpx #pixels_end-pixels
                 bcs fill
-                lda pixels,y
+                lda pixels,x
 fill:
-                ldy #7
+                ldx #7
 fill_loop:
 dest=*+1;;;;;;;;;;;;;;;;;;;;;;<-- note
-                sta $3000,y;;;<-- note
-                dey
+                sta $3000,x;;;<-- note
+                dex
                 bpl fill_loop
 
                 lda #13
@@ -123,17 +123,17 @@ update_dmax_colour:
                 cmp #MAX_MAX_COLOUR+1
                 bcc max_max_ok
 max_max_breached:
-                ldy #MAX_MAX_COLOUR
+                ldx #MAX_MAX_COLOUR
                 bra toggle_dmax_colour
 max_max_ok:
                 cmp #MIN_MAX_COLOUR
                 bcs min_max_ok
-                ldy #MIN_MAX_COLOUR
+                ldx #MIN_MAX_COLOUR
 toggle_dmax_colour:
                 lda dmax_colour
                 eor #$fe
                 sta dmax_colour
-                tya
+                txa
 min_max_ok:
                 sta max_colour
                 
@@ -147,7 +147,7 @@ update_dest_msb:
                 sta dest+1
 
 dest_updated:
-                dex
+                dey
                 bne blocks_loop
 
                 lda #2
