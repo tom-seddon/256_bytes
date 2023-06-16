@@ -19,14 +19,12 @@ MAX_MAX_COLOUR=22
 
                 .section zp
 dest: .fill 2
-crtc: .fill 2
 colour: .fill 1
 other_pixel: .fill 1
 max_colour: .fill 1
 dmax_colour: .fill 1
 noise_value: .fill 1
 dmax_colour_change_counter: .fill 1
-loop_counter: .fill 1
                 .endsection
 
 ;-------------------------------------------------------------------------
@@ -71,9 +69,6 @@ clear_zp_loop:
                 lda #$30
                 sta dest+1
 
-                lda #$06
-                sta crtc+1
-
                 lda #MIN_MAX_COLOUR
                 sta max_colour
 
@@ -88,8 +83,7 @@ clear_zp_loop:
                 ; jsr sn_write
 
 main_loop:
-                lda #19
-                sta loop_counter
+                ldx #19
 blocks_loop:
                 lda colour
                 inc a
@@ -99,26 +93,32 @@ blocks_loop:
 got_colour:
                 sta colour
 
-                ldy #7
                 lda #0
-                ldx colour
-                cpx #pixels_end-pixels
-                bcs fill_loop
-                lda pixels,x
+                ldy colour
+                cpy #pixels_end-pixels
+                bcs fill
+                lda pixels,y
+fill:
+                ldy #7
 fill_loop:
                 sta (dest),y
                 dey
                 bpl fill_loop
 
-                inc crtc+0
+                lda #13
+                sta $fe00
+                inc $fe01
                 bne got_crtc
-                ldx crtc+1
-                inx
-                cpx #$10
+                dec a
+                sta $fe00
+                lda $fe01
+                inc a
+                cmp #$10
                 bcc got_crtc_msb
-                ldx #$06
+                lda #$06
 got_crtc_msb:
-                stx crtc+1
+                sta $fe01
+
 got_crtc:
 
                 clc
@@ -137,17 +137,17 @@ update_dmax_colour:
                 cmp #MAX_MAX_COLOUR+1
                 bcc max_max_ok
 max_max_breached:
-                ldx #MAX_MAX_COLOUR
+                ldy #MAX_MAX_COLOUR
                 bra toggle_dmax_colour
 max_max_ok:
                 cmp #MIN_MAX_COLOUR
                 bcs min_max_ok
-                ldx #MIN_MAX_COLOUR
+                ldy #MIN_MAX_COLOUR
 toggle_dmax_colour:
                 lda dmax_colour
                 eor #$fe
                 sta dmax_colour
-                txa
+                tya
 min_max_ok:
                 sta max_colour
                 
@@ -161,14 +161,8 @@ update_dest_msb:
                 sta dest+1
 
 dest_updated:
-                dec loop_counter
+                dex
                 bne blocks_loop
-
-                ldy #12
-                ldx #crtc+1
-                jsr write_crtc_zp
-                jsr write_crtc_zp
-
 
                 lda #2
 wait_vsync_loop:
@@ -177,15 +171,6 @@ wait_vsync_loop:
                 sta system_via.ifr
 
                 jmp main_loop
-
-write_crtc_zp:
-                lda 0,x
-                dex
-write_crtc:
-                sty $fe00
-                sta $fe01
-                iny
-                rts
 
 sn_write: .proc
                 sta system_via.ora_no_handshake
@@ -197,23 +182,24 @@ sn_write: .proc
 +
                 rts
                 .endproc
+
                 
 pixels:
-                .byte $00
-                .byte $20
-                .byte $30
-                .byte $12
-                .byte $03
-                .byte $23
-                .byte $33
-                .byte $19
-                .byte $0c
-                .byte $2c
-                .byte $3c
-                .byte $1e
-                .byte $0f
-                .byte $2f
-                .byte $3f
+                .byte $00       ;brk <---------- no
+                .byte $20       ;jsr $1230
+                .byte $30       ;bmi rel <------ must be untaken!
+                .byte $12       ;ora $03
+                .byte $03       ;1-byte nop
+                .byte $23       ;1-byte nop
+                .byte $33       ;1-byte nop
+                .byte $19       ;ora $2c0c,y
+                .byte $0c       ;tsb $3c2c
+                .byte $2c       ;bit $1e3c
+                .byte $3c       ;bit $0f1e,x
+                .byte $1e       ;asl $2f0f,x <-- no
+                .byte $0f       ;1-byte nop
+                .byte $2f       ;1-byte nop
+                .byte $3f       ;1-byte nop
 pixels_end:
                 
                 .endsection
