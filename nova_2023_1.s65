@@ -72,7 +72,6 @@ pixels:
                 .byte $3f
 pixels_end:
 
-dmax_colour: .byte 0
 max_colour: .byte MIN_MAX_COLOUR
 dmax_colour_change_counter: .byte DMAX_COLOUR_CHANGE_COUNTER_VALUE
 zp_code_actual_start:
@@ -125,7 +124,6 @@ got_crtc_msb:
                 sta (fe01_constant)
 
 got_crtc:
-
                 clc
                 lda dest+0
                 adc #8
@@ -136,9 +134,11 @@ update_dmax_colour:
                 dec dmax_colour_change_counter
                 bne update_dest_msb
 
-                ; C=1
+                ; C=1 - 0=+1, $fe=-1
                 lda max_colour
-                adc dmax_colour ;0=+1/$fe=-1
+
+dmax_colour=*+1;;;;;;;;;<--note
+                adc #0;;<--note
                 cmp #MAX_MAX_COLOUR+1
                 bcc max_max_ok
 max_max_breached:
@@ -176,6 +176,8 @@ via_ifr_constant=*+1;;;;;;;;;;;;;;;;<--note
                 beq wait_vsync_loop
                 sta (via_ifr_constant)
 
+                ; this will probably have to remain a jmp due to the
+                ; distances involved :(
                 jmp main_loop
 
 sn_write: .proc
