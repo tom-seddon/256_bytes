@@ -174,5 +174,5 @@ tom_laptop:
 
 .PHONY:b2
 b2:
-	curl --silent -G 'http://localhost:48075/reset/b2' --data-urlencode "config=$(CONFIG)"
-	curl --silent -H 'Content-Type:application/binary' --upload-file '$(TMP)/$(SSD).ssd' 'http://localhost:48075/run/b2?name=$(SSD).ssd'
+	curl --connect-timeout 0.25 --silent -G 'http://localhost:48075/reset/b2' --data-urlencode "config=$(CONFIG)"
+	curl --connect-timeout 0.25 --silent -H 'Content-Type:application/binary' --upload-file '$(TMP)/$(SSD).ssd' 'http://localhost:48075/run/b2?name=$(SSD).ssd'
