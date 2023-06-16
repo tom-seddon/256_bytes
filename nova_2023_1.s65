@@ -49,10 +49,29 @@ copy_zp_loop:
                 stx system_via.ddra
                 inx
                 bne copy_zp_loop
-                jmp zp_code_actual_start
 
+                .byte $4c                   ;JMP abs
+                .byte <zp_code_actual_start ;JMP abs LSB
 zp_code:
                 .logical 0
+pixels:
+                .byte $00       ;also JMP abs MSB
+                .byte $20
+                .byte $30
+                .byte $12
+                .byte $03
+                .byte $23
+                .byte $33
+                .byte $19
+                .byte $0c
+                .byte $2c
+                .byte $3c
+                .byte $1e
+                .byte $0f
+                .byte $2f
+                .byte $3f
+pixels_end:
+
 dmax_colour: .byte 0
 max_colour: .byte MIN_MAX_COLOUR
 dmax_colour_change_counter: .byte DMAX_COLOUR_CHANGE_COUNTER_VALUE
@@ -169,26 +188,6 @@ sn_write: .proc
 +
                 rts
                 .endproc
-
-                
-pixels:
-                .byte $00       ;brk <---------- no
-                .byte $20       ;jsr $1230
-                .byte $30       ;bmi rel <------ must be untaken!
-                .byte $12       ;ora $03
-                .byte $03       ;1-byte nop
-                .byte $23       ;1-byte nop
-                .byte $33       ;1-byte nop
-                .byte $19       ;ora $2c0c,y
-                .byte $0c       ;tsb $3c2c
-                .byte $2c       ;bit $1e3c
-                .byte $3c       ;bit $0f1e,x
-                .byte $1e       ;asl $2f0f,x <-- no
-                .byte $0f       ;1-byte nop
-                .byte $2f       ;1-byte nop
-                .byte $3f       ;1-byte nop
-pixels_end:
-
                 .endlogical
                 .endsection
                 
