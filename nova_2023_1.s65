@@ -7,6 +7,7 @@
 
 *=$00
                 .dsection zp
+                .cerror *>22,'oops'
 *=$1900
                 .dsection code
 
@@ -54,23 +55,23 @@ sn_freql: .function ch,freq
                 .section code
 start:
                 lda #22
+                tax
+clear_zp_loop:
+                stz 0,x
+                dex
+                bpl clear_zp_loop
+
                 jsr oswrch
                 lda #2
                 jsr oswrch
 
                 sei
-                
-                ldx #$ff
                 stx system_via.ddra
-clear_zp_loop:
-                inx
-                stz 0,x
-                bpl clear_zp_loop
 
                 lda #$30
                 sta dest+1
 
-                lda #6
+                lda #$06
                 sta crtc+1
 
                 lda #MIN_MAX_COLOUR
