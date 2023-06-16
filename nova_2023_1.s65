@@ -5,10 +5,11 @@
                 
 ;-------------------------------------------------------------------------
 
-*=$1900
+*=$18fe
+                .word entry
                 .dsection code
 
-DMAX_COLOUR_CHANGE_COUNTER_VALUE=10
+DMAX_COLOUR_CHANGE_COUNTER_VALUE=10 ; must be 10!
 MIN_MAX_COLOUR=16
 MAX_MAX_COLOUR=22
                 
@@ -37,23 +38,28 @@ sn_freql: .function ch,freq
                 
                 .section code
 start:
-                lda #22
-                jsr oswrch
-                lda #2
-                jsr oswrch
-                sei
-                tax
+init_prints:
+                .byte 22
+dmax_colour_change_counter_initial:
+                .byte 10
+init_prints_end:
+entry:
+                ldx #0
 copy_zp_loop:
-                lda zp_code-2,x
-                sta $fe,x
+                lda start,x
+                sta 0,x
+                cpx #init_prints_end-init_prints
+                bcs +
+                jsr oswrch
++
+                sei
                 stx system_via.ddra
                 inx
                 bne copy_zp_loop
 
                 .byte $4c                   ;JMP abs
                 .byte <zp_code_actual_start ;JMP abs LSB
-zp_code:
-                .logical 0
+                .logical *-start
 pixels:
                 .byte $00       ;also JMP abs MSB
                 .byte $20
@@ -73,7 +79,7 @@ pixels:
 pixels_end:
 
 max_colour: .byte MIN_MAX_COLOUR
-dmax_colour_change_counter: .byte DMAX_COLOUR_CHANGE_COUNTER_VALUE
+dmax_colour_change_counter=dmax_colour_change_counter_initial-start
 zp_code_actual_start:
                 ; lda #sn_atten(1,1)
                 ; jsr sn_write
