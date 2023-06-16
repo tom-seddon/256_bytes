@@ -103,7 +103,7 @@ fe01_constant=*+1;;;;;;;;;;<--note
                 bcc got_crtc_msb
                 lda #$06
 got_crtc_msb:
-                sta $fe01
+                sta (fe01_constant)
 
 got_crtc:
 
