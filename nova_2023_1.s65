@@ -5,9 +5,6 @@
                 
 ;-------------------------------------------------------------------------
 
-*=$00
-                .dsection zp
-                .cerror *>22,'oops'
 *=$1900
                 .dsection code
 
@@ -15,18 +12,6 @@ DMAX_COLOUR_CHANGE_COUNTER_VALUE=10
 MIN_MAX_COLOUR=16
 MAX_MAX_COLOUR=22
                 
-;-------------------------------------------------------------------------
-
-                .section zp
-dest: .fill 2
-colour: .fill 1
-other_pixel: .fill 1
-max_colour: .fill 1
-dmax_colour: .fill 1
-noise_value: .fill 1
-dmax_colour_change_counter: .fill 1
-                .endsection
-
 ;-------------------------------------------------------------------------
 
 sn_freq_reg: .function ch
@@ -53,28 +38,25 @@ sn_freql: .function ch,freq
                 .section code
 start:
                 lda #22
-                tax
-clear_zp_loop:
-                stz 0,x
-                dex
-                bpl clear_zp_loop
-
                 jsr oswrch
                 lda #2
                 jsr oswrch
-
                 sei
+                tax
+copy_zp_loop:
+                lda zp_code-2,x
+                sta $fe,x
                 stx system_via.ddra
+                inx
+                bne copy_zp_loop
+                jmp zp_code_actual_start
 
-                lda #$30
-                sta dest+1
-
-                lda #MIN_MAX_COLOUR
-                sta max_colour
-
-                lda #DMAX_COLOUR_CHANGE_COUNTER_VALUE
-                sta dmax_colour_change_counter
-
+zp_code:
+                .logical 0
+dmax_colour: .byte 0
+max_colour: .byte MIN_MAX_COLOUR
+dmax_colour_change_counter: .byte DMAX_COLOUR_CHANGE_COUNTER_VALUE
+zp_code_actual_start:
                 ; lda #sn_atten(1,1)
                 ; jsr sn_write
 
@@ -85,7 +67,8 @@ clear_zp_loop:
 main_loop:
                 ldx #19
 blocks_loop:
-                lda colour
+colour=*+1;;;;;;;;;;;;;;;;;<--note
+                lda #0;;;;;<--note
                 inc a
                 cmp max_colour
                 bcc got_colour
@@ -101,17 +84,20 @@ got_colour:
 fill:
                 ldy #7
 fill_loop:
-                sta (dest),y
+dest=*+1;;;;;;;;;;;;;;;;;;;;;;<-- note
+                sta $3000,y;;;<-- note
                 dey
                 bpl fill_loop
 
                 lda #13
-                sta $fe00
-                inc $fe01
+fe00_constant=*+1;;;;;;;;;;<--note
+                sta $fe00;;<--note
+fe01_constant=*+1;;;;;;;;;;<--note
+                inc $fe01;;<--note
                 bne got_crtc
                 dec a
-                sta $fe00
-                lda $fe01
+                sta (fe00_constant)
+                lda (fe01_constant)
                 inc a
                 cmp #$10
                 bcc got_crtc_msb
@@ -166,9 +152,10 @@ dest_updated:
 
                 lda #2
 wait_vsync_loop:
-                bit system_via.ifr
+via_ifr_constant=*+1;;;;;;;;;;;;;;;;<--note
+                bit system_via.ifr;;<--note
                 beq wait_vsync_loop
-                sta system_via.ifr
+                sta (via_ifr_constant)
 
                 jmp main_loop
 
@@ -201,6 +188,7 @@ pixels:
                 .byte $2f       ;1-byte nop
                 .byte $3f       ;1-byte nop
 pixels_end:
-                
+
+                .endlogical
                 .endsection
                 
