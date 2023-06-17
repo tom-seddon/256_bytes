@@ -103,8 +103,8 @@ colour=*+1;;;;;;;;;;;;;;;;;<--note
 got_colour:
                 sta colour
 
+                tax
                 lda #0
-                ldx colour
                 cpx #pixels_end-pixels
                 bcs fill
                 lda pixels,x
