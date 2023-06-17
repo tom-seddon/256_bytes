@@ -1,0 +1,97 @@
+
+
+#+begin_src 6502-asm
+  add_crtc:
+		  stx $fe00       ;+3 3
+		  adc $fe01       ;+3 6
+		  sta $fe01       ;+3 9
+		  rts             ;+1 10
+#+end_src
+
+#+begin_src 6502-asm
+		  clc             ;+1 1
+		  ldx #13         ;+2 3
+		  lda #80         ;+2 5
+		  jsr add_crtc    ;+3 8
+		  dex             ;+1 9
+		  lda #0          ;+2 11
+		  jsr add_crtc    ;+3 14
+#+end_src
+
+#+begin_src 6502-asm
+		  lda dest+1      ;+2 2
+		  sta tmp         ;+2 4
+		  lda dest+0      ;+2 6
+		  lsr a           ;+1 7
+		  ror tmp         ;+2 9
+		  lsr a           ;+1 10
+		  ror tmp         ;+2 12
+		  lsr a           ;+1 13
+		  ror tmp         ;+2 14
+		  ldx #13         ;+2 16
+		  jsr write_crtc  ;+3 19
+		  dex             ;+1 20
+		  lda tmp         ;+2 22
+		  jsr write_crtc  ;+3 25
+#+end_src
+
+#+begin_src 6502-asm
+#+end_src
+
+* SN76489
+
+** Update attenuator
+
+#+begin_example
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 |Channel| 1 |  Attenuation  |
++---+---+---+---+---+---+---+---+
+#+end_example
+
+** Update noise
+
+#+begin_example
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 | 1 | 1 | 0 | x | W | Freq  |
++---+---+---+---+---+---+---+---+
+#+end_example
+
+~W~ values:
+
+| W | What           |
+|---+----------------|
+| 0 | Periodic noise |
+| 1 | White noise    |
+|   |                |
+
+~Freq~ values:
+
+| Freq | What   |
+|------+--------|
+|   00 | N/512  |
+|   01 | N/1024 |
+|   10 | N/2048 |
+|   11 | Tone #3 |
+
+** Update tone
+
+Set channel and lower bits:
+
+#+begin_example
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 1 |Channel| 0 |F3 |F2 |F1 |F0 |
++---+---+---+---+---+---+---+---+
+#+end_example
+
+Update upper bits of current channel:
+
+#+begin_example
+  7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+
+| 0 |   |F9 |F8 |F7 |F6 |F5 |F4 |
++---+---+---+---+---+---+---+---+
+#+end_example
+
