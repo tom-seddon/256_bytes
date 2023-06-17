@@ -30,8 +30,8 @@ endif
 
 .PHONY:build
 build: _folders
-	$(MAKE) _assemble_and_ssd SRC=wobble_colours BBC=1 SSD=wobble_colours "EXTRA=-DSCROLL_OFFSET=0"
-	$(MAKE) _assemble_and_ssd SRC=wobble_colours BBC=2 SSD=wobble_colours_scroll "EXTRA=-DSCROLL_OFFSET=1"
+	$(MAKE) _assemble_and_ssd SRC=wobble_colours BBC=1 SSD=wobble_colours "TASS_EXTRA=-DSCROLL_OFFSET=0"
+	$(MAKE) _assemble_and_ssd SRC=wobble_colours BBC=2 SSD=wobble_colours_scroll "TASS_EXTRA=-DSCROLL_OFFSET=1"
 	$(MAKE) _assemble_and_ssd SRC=alias_sines BBC=ASINES SSD=alias_sines
 	$(MAKE) _assemble_and_ssd SRC=2_scrollers BBC=2SCROLL SSD=2_scrollers
 	$(MAKE) _assemble_and_ssd SRC=alien_daydream BBC=ALIEN SSD=alien_daydream
@@ -60,7 +60,7 @@ build_lovebyte_2023_4:
 
 .PHONY:build_nova_2023_1
 build_nova_2023_1:
-	$(MAKE) _assemble_and_ssd SRC=nova_2023_1 BBC=NOVA231 SSD=nova_2023_1
+	$(MAKE) _assemble_and_ssd SRC=nova_2023_1 BBC=NOVA231 SSD=nova_2023_1 PRG2BBC_EXTRA=--execution-address
 
 .PHONY:build_r22
 build_r22: _folders
@@ -105,8 +105,8 @@ _ssd:
 # BBC=stem of Beeb name, copied to $(DEST)
 .PHONY:_assemble
 _assemble:
-	$(TASSCMD) $(EXTRA) "$(SRC).s65" "-L$(TMP)/$(SRC).lst" "-l$(TMP)/$(SRC).sym" "-o$(TMP)/$(SRC).prg"
-	$(PYTHON) $(BEEB_BIN)/prg2bbc.py "$(TMP)/$(SRC).prg" "$(DEST)/$$.$(BBC)"
+	$(TASSCMD) $(TASS_EXTRA) "$(SRC).s65" "-L$(TMP)/$(SRC).lst" "-l$(TMP)/$(SRC).sym" "-o$(TMP)/$(SRC).prg"
+	$(PYTHON) $(BEEB_BIN)/prg2bbc.py $(PRG2BBC_EXTRA) "$(TMP)/$(SRC).prg" "$(DEST)/$$.$(BBC)"
 
 ##########################################################################
 ##########################################################################
