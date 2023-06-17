@@ -95,15 +95,14 @@ main_loop:
                 ldy #19
 blocks_loop:
 colour=*+1;;;;;;;;;;;;;;;;;<--note
-                lda #0;;;;;<--note
-                inc a
-                cmp max_colour
+                ldx #0;;;;;<--note
+                inx
+                cpx max_colour
                 bcc got_colour
-                lda #0
+                ldx #0
 got_colour:
-                sta colour
+                stx colour
 
-                tax
                 lda #0
                 cpx #pixels_end-pixels
                 bcs fill
