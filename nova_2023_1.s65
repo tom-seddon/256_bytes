@@ -3,16 +3,16 @@
 
 ; refinement of lovebyte_2023_2
                 
-;-------------------------------------------------------------------------
-
-*=$18fe
-                .word entry
-                .dsection code
-
 DMAX_COLOUR_CHANGE_COUNTER_VALUE=10 ; must be 10!
 MIN_MAX_COLOUR=16
 MAX_MAX_COLOUR=22
                 
+;-------------------------------------------------------------------------
+
+*=$1900+MIN_MAX_COLOUR-2
+                .word entry
+                .dsection code
+
 ;-------------------------------------------------------------------------
 
 sn_freq_reg: .function ch
@@ -46,7 +46,9 @@ init_prints_end:
 entry:
                 ldx #0
 copy_zp_loop:
-                lda start,x
+                .cerror (<start)!=MIN_MAX_COLOUR,"oops"
+max_colour_initial=*+1;;;;;;<--note
+                lda start,x;;<--note
                 sta 0,x
                 cpx #init_prints_end-init_prints
                 bcs +
@@ -78,7 +80,8 @@ pixels:
                 .byte $3f
 pixels_end:
 
-max_colour: .byte MIN_MAX_COLOUR
+; max_colour: .byte MIN_MAX_COLOUR
+max_colour=max_colour_initial-start
 dmax_colour_change_counter=dmax_colour_change_counter_initial-start
 zp_code_actual_start:
                 ; lda #sn_atten(1,1)
