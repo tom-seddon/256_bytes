@@ -217,7 +217,7 @@ sn_write:
                 stz system_via.orb
                 ldy #8
                 jsr +
-                jsr +
+                .byte $54,$00   ;2-byte 4-cycle NOP
                 sty system_via.orb
 +
                 rts
