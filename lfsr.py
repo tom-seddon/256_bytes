@@ -33,7 +33,7 @@ def main2(options):
 
     for c in candidates:
         print('Xor mask: $%02x'%(c.xor_mask))
-        print('  Results: %s'%c.results)
+        #print('  Results: %s'%c.results)
     
 ##########################################################################
 

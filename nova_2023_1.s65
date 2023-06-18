@@ -84,13 +84,6 @@ pixels_end:
 max_colour=max_colour_initial-start
 dmax_colour_change_counter=dmax_colour_change_counter_initial-start
 zp_code_actual_start:
-                ; lda #sn_atten(1,1)
-                ; jsr sn_write
-
-                ; ; silence startup beep on tone 3 
-                ; lda #sn_atten(0,15)
-                ; jsr sn_write
-
 main_loop:
                 ldy #19
 blocks_loop:
@@ -177,6 +170,38 @@ dest_updated:
                 dey
                 bne blocks_loop
 
+                ;
+                pla             ;increment frame counter
+                tsx
+                txa
+                and #15
+                bne wait_vsync
+                
+                ;
+                ; Produce audible phenomena.
+                ;
+
+                lda $fe44
+                and #3
+                tax
+
+                clc
+next_sn_latch_value=*+1;;;;;;;;;<--note
+                lda #%10000000;;<--note
+                adc #%00100000
+                cmp #%11100000
+                bcc +           ;taken if noise
+                lda #%10000000
++
+                sta next_sn_latch_value
+                ora #%00010000  ;set attenuation
+                jsr sn_write
+                eor values_lo,x ;set tone lo
+                jsr sn_write
+                
+                lda values_hi,x
+                jsr sn_write
+wait_vsync:                
                 lda #2
 wait_vsync_loop:
 via_ifr_constant=*+1;;;;;;;;;;;;;;;;<--note
@@ -188,16 +213,26 @@ via_ifr_constant=*+1;;;;;;;;;;;;;;;;<--note
                 ; distances involved :(
                 jmp main_loop
 
-sn_write: .proc
+sn_write:
                 sta system_via.ora_no_handshake
                 stz system_via.orb
-                ldx #8
+                ldy #8
                 jsr +
                 jsr +
-                stx system_via.orb
+                sty system_via.orb
 +
                 rts
-                .endproc
+
+_:=[]
+_..=[$01de] ; 40 C4 = 261.6256 Hz
+_..=[$0192] ; 43 D#4 = 311.1270 Hz
+_..=[$013f] ; 47 G4 = 391.9954 Hz
+_..=[$010c] ; 50 A#4 = 466.1638 Hz
+                
+values=_
+values_lo: .byte (values&$0f)|$10
+values_hi: .byte values>>4
+                
                 .endlogical
                 .endsection
                 

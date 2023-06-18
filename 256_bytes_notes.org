@@ -95,3 +95,34 @@ Update upper bits of current channel:
 +---+---+---+---+---+---+---+---+
 #+end_example
 
+* Notes
+
+| Note |       Hz |
+|------+----------|
+| C    | 261.6256 |
+| D#   | 311.1270 |
+| F    | 349.2282 |
+| F#   | 369.9944 |
+| G    | 391.9954 |
+| Bb   | 466.1638 |
+| B    | 493.8833 |
+| C5   | 523.2511 |
+
+#+begin_src 6502-asm
+  rand:
+  lfsr_state=*+1;;;;;;;;;;;;<--note
+		  lda #$01;;<--note
+		  asl a
+		  bcc +
+		  ;eor #$f5        ;ok
+		  eor #$65
+  +
+		  sta lfsr_state
+		  and #7
+		  tax
+		  rts
+
+  values=[$01dd,$0191,$0165,$0151,$013e,$010c,$00fd,$00ee]
+  values_lo: .byte values&$0f
+  values_hi: .byte values>>4
+#+end_src
