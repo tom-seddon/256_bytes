@@ -174,7 +174,7 @@ dest_updated:
                 pla             ;increment frame counter
                 tsx
                 txa
-                and #15
+                and #7
                 bne wait_vsync
                 
                 ;
@@ -187,14 +187,13 @@ dest_updated:
 
                 clc
 next_sn_latch_value=*+1;;;;;;;;;<--note
-                lda #%10000000;;<--note
+                lda #%10010000;;<--note
                 adc #%00100000
                 cmp #%11100000
                 bcc +           ;taken if noise
-                lda #%10000000
+                lda #%10010000
 +
                 sta next_sn_latch_value
-                ora #%00010000  ;set attenuation
                 jsr sn_write
                 eor values_lo,x ;set tone lo
                 jsr sn_write
