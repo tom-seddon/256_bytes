@@ -170,36 +170,52 @@ dest_updated:
                 dey
                 bne blocks_loop
 
-                ;
                 pla             ;increment frame counter
+
+                ;
                 tsx
                 txa
-                and #7
-                bne wait_vsync
+                and #127
+                cmp #63
+                bcs wait_vsync
                 
-                ;
-                ; Produce audible phenomena.
-                ;
+                lsr a
+                lsr a
+                eor #$0f
+                ora #sn_atten_reg(0)
+                jsr sn_write
 
-                lda $fe44
+                txa
+                lsr a
+                and #$0f
+                ora #sn_atten_reg(1)
+                jsr sn_write
+
+                txa
+                asl a
+                bne wait_vsync
+
+xval=*+1
+                lda #0
+                inc xval
                 and #3
                 tax
 
-                clc
-next_sn_latch_value=*+1;;;;;;;;;<--note
-                lda #%10010000;;<--note
-                adc #%00100000
-                cmp #%11100000
-                bcc +           ;taken if noise
-                lda #%10010000
-+
-                sta next_sn_latch_value
-                jsr sn_write
-                eor values_lo,x ;set tone lo
-                jsr sn_write
-                
+                lda values_lo,x ;includes sn_freq_reg(0)
+                jsr sn_write                
                 lda values_hi,x
                 jsr sn_write
+
+                lda xval
+                lsr a
+                and #3
+                tax
+                lda values_lo+2,x
+                eor #sn_freq_reg(0)^sn_freq_reg(1)
+                jsr sn_write
+                lda values_hi+2,x
+                jsr sn_write
+
 wait_vsync:                
                 lda #2
 wait_vsync_loop:
@@ -227,9 +243,11 @@ _..=[$01de] ; 40 C4 = 261.6256 Hz
 _..=[$0192] ; 43 D#4 = 311.1270 Hz
 _..=[$013f] ; 47 G4 = 391.9954 Hz
 _..=[$010c] ; 50 A#4 = 466.1638 Hz
+_..=[$0166] ; F4
+_..=[$00ef]     ;C5
                 
 values=_
-values_lo: .byte (values&$0f)|$10
+values_lo: .byte (values&$f)|sn_freq_reg(0)
 values_hi: .byte values>>4
                 
                 .endlogical
