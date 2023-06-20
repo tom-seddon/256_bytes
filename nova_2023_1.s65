@@ -42,7 +42,8 @@ init_prints:
                 .byte 22
 dmax_colour_change_counter_initial:
                 .byte 10
-init_prints_end:
+                .byte 23,0,8,$f0
+init_prints_end=*+6
 entry:
                 ldx #0
 copy_zp_loop:
@@ -59,35 +60,29 @@ max_colour_initial=*+1;;;;;;<--note
                 inx
                 bne copy_zp_loop
 
-                .byte $4c                   ;JMP abs
-                .byte <zp_code_actual_start ;JMP abs LSB
+                jmp zp_code_actual_start
                 .logical *-start
 pixels:
-                .byte $00       ;also JMP abs MSB
-                .byte $20
-                .byte $30
-                .byte $12
-                .byte $03
-                .byte $23
-                .byte $33
-                .byte $19
-                .byte $0c
-                .byte $2c
-                .byte $3c
-                .byte $1e
-                .byte $0f
-                .byte $2f
-                .byte $3f
+                .byte $20       ;...JSR $1230
+                .byte $30       ;...BMI *+$12
+                .byte $12       ;ORA ($03)
+                .byte $03       ;...NOP1
+                .byte $23       ;NOP1
+                .byte $33       ;NOP1
+                .byte $19       ;ORA $2c0c,y
+                .byte $0c       ;...TSB $3c2c
+                .byte $2c       ;...BIT $1e3c
+                .byte $3c       ;BIT $0f1e,x
+                .byte $1e       ;...ASL $2f0f,x
+                .byte $0f       ;...NOP1
+                .byte $2f       ;NOP1
+                .byte $3f       ;NOP1
 pixels_end:
 
 ; max_colour: .byte MIN_MAX_COLOUR
 max_colour=max_colour_initial-start
 dmax_colour_change_counter=dmax_colour_change_counter_initial-start
 zp_code_actual_start:
-                lda #8
-                sta (fe00_constant)
-                lda #$f0
-                sta (fe01_constant)
 main_loop:
                 ldy #19
 blocks_loop:
