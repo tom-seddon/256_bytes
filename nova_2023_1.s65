@@ -9,7 +9,7 @@ MAX_MAX_COLOUR=22
                 
 ;-------------------------------------------------------------------------
 
-*=$1900+MIN_MAX_COLOUR-2
+*=$1230-((sn_write_rts-zp_code_actual_start)+(zp_code_unrelocated_start-start))-2
                 .word entry
                 .dsection code
 
@@ -47,8 +47,8 @@ init_prints_end=*+6
 entry:
                 ldx #0
 copy_zp_loop:
-                .cerror (<start)!=MIN_MAX_COLOUR,"oops"
-max_colour_initial=*+1;;;;;;<--note
+                .cerror (>start)<MIN_MAX_COLOUR||(>start)>=MAX_MAX_COLOUR,"oops" ;exact starting value isn't so important...
+max_colour_initial=*+2;;;;;;;<--note
                 lda start,x;;<--note
                 sta 0,x
                 cpx #init_prints_end-init_prints
@@ -61,23 +61,8 @@ max_colour_initial=*+1;;;;;;<--note
                 bne copy_zp_loop
 
                 jmp zp_code_actual_start
+zp_code_unrelocated_start:
                 .logical *-start
-pixels:
-                .byte $20       ;...JSR $1230
-                .byte $30       ;...BMI *+$12
-                .byte $12       ;ORA ($03)
-                .byte $03       ;...NOP1
-                .byte $23       ;NOP1
-                .byte $33       ;NOP1
-                .byte $19       ;ORA $2c0c,y
-                .byte $0c       ;...TSB $3c2c
-                .byte $2c       ;...BIT $1e3c
-                .byte $3c       ;BIT $0f1e,x
-                .byte $1e       ;...ASL $2f0f,x
-                .byte $0f       ;...NOP1
-                .byte $2f       ;NOP1
-                .byte $3f       ;NOP1
-pixels_end:
 
 ; max_colour: .byte MIN_MAX_COLOUR
 max_colour=max_colour_initial-start
@@ -234,10 +219,26 @@ sn_write:
                 sta system_via.ora_no_handshake
                 stz system_via.orb
                 ldy #8
-                jsr +
-                .byte $54,$00   ;2-byte 4-cycle NOP
+pixels:
+                ; The flash state is such that Colours 0-7 and 8-15
+                ; are the same.
+                .byte $20       ;JSR $1230
+                .byte $30       ;...BMI *+$12
+                .byte $12       ;...ORA ($03)
+                .byte $03       ;NOP1
+                .byte $23       ;NOP1
+                .byte $33       ;NOP1
+                .byte $99       ;STA $2c0c,y ($19 is ORA!)
+                .byte $0c       ;...TSB $3c2c
+                .byte $2c       ;...BIT $1e3c
+                .byte $3c       ;BIT $0f1e,x
+                .byte $1e       ;...ASL $2f0f,x
+                .byte $0f       ;...NOP1
+                .byte $2f       ;NOP1
+                .byte $3f       ;NOP1
+pixels_end:
                 sty system_via.orb
-+
+sn_write_rts:
                 rts
 
 _:=[]
