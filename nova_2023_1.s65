@@ -130,8 +130,9 @@ got_crtc_msb:
 
 got_crtc:
                 clc
-                lda dest+0
-                adc #8
+                lda #8
+                sta (fe00_constant) ;might come in handy...
+                adc dest+0
                 sta dest+0
                 bcc dest_updated
 
@@ -170,8 +171,7 @@ update_dest_msb:
                 lda #$30
                 sta dest+1
 
-                lda #8
-                sta (fe00_constant)
+                ; fe00 was set to 8 above
                 lda #$c0
                 sta (fe01_constant)
 
