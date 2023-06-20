@@ -148,6 +148,9 @@ dmax_colour=*+1;;;;;;;;;<--note
                 cmp #MAX_MAX_COLOUR+1
                 bcc max_max_ok
 max_max_breached:
+                lda timing
+                eor #15^31
+                sta timing
                 ldx #MAX_MAX_COLOUR
                 bra toggle_dmax_colour
 max_max_ok:
@@ -158,6 +161,7 @@ toggle_dmax_colour:
                 lda dmax_colour
                 eor #$fe
                 sta dmax_colour
+                
                 txa
 min_max_ok:
                 sta max_colour
@@ -183,6 +187,7 @@ dest_updated:
                 pla             ;increment frame counter
                 tsx
                 txa
+timing=*+1
                 and #15
                 bne set_attenuation
                 
