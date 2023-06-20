@@ -159,6 +159,11 @@ update_dest_msb:
                 lda #$c0
                 sta (fe01_constant)
 
+                ; switch between A#4 and kind-of E4
+                lda values_hi+3
+                eor #$13^$17
+                sta values_hi+3
+
 dest_updated:
                 dey
                 bne blocks_loop
@@ -179,7 +184,10 @@ timing=*+1
                 and #3
                 tax
 
-                clc
+                ; occasionally one of the notes will be slightly out.
+                ; call it "character".
+                ;clc
+                
 next_sn_latch_value=*+1;;;;;;;;;<--note
                 lda #%10010000;;<--note
                 adc #%00100000
