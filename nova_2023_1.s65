@@ -84,6 +84,10 @@ pixels_end:
 max_colour=max_colour_initial-start
 dmax_colour_change_counter=dmax_colour_change_counter_initial-start
 zp_code_actual_start:
+                lda #8
+                sta (fe00_constant)
+                lda #$f0
+                sta (fe01_constant)
 main_loop:
                 ldy #19
 blocks_loop:
@@ -166,6 +170,11 @@ update_dest_msb:
                 lda #$30
                 sta dest+1
 
+                lda #8
+                sta (fe00_constant)
+                lda #$c0
+                sta (fe01_constant)
+
 dest_updated:
                 dey
                 bne blocks_loop
@@ -174,8 +183,8 @@ dest_updated:
                 pla             ;increment frame counter
                 tsx
                 txa
-                and #7
-                bne wait_vsync
+                and #15
+                bne set_attenuation
                 
                 ;
                 ; Produce audible phenomena.
@@ -200,6 +209,15 @@ next_sn_latch_value=*+1;;;;;;;;;<--note
                 
                 lda values_hi,x
                 jsr sn_write
+
+set_attenuation:
+                txa
+                lsr a
+                lsr a
+                and #$0f
+                ora next_sn_latch_value
+                jsr sn_write
+
 wait_vsync:                
                 lda #2
 wait_vsync_loop:
