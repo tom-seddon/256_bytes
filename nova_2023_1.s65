@@ -140,11 +140,6 @@ dmax_colour=*+1;;;;;;;;;<--note
                 bcc max_max_ok
 max_max_breached:
                 ; C=1
-                rol timing
-                bcc +
-                lda #%00100111
-                sta timing
-+
                 ldx #MAX_MAX_COLOUR
                 bra toggle_dmax_colour
 max_max_ok:
@@ -178,6 +173,14 @@ update_dest_msb:
                 eor #$13^$17
                 sta values_hi+3
 
+                ; update timing
+                sec
+                rol timing
+                bcc +
+                lda #%00100111
+                sta timing
++
+                
 dest_updated:
                 dey
                 bne blocks_loop
@@ -191,7 +194,7 @@ dest_updated:
                 ; bottom 5 bits dictate temp; top 3 bits encode time
                 ; til tempo reset
 timing=*+1
-                and #%00100111
+                and #%10011111
                 bne set_attenuation
                 
                 ;
