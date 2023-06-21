@@ -44,6 +44,7 @@ dmax_colour_change_counter_initial:
                 .byte 10
                 .byte 23,0,8,$f0
 init_prints_end=*+6
+
 entry:
                 ldx #0
 copy_zp_loop:
@@ -63,6 +64,16 @@ max_colour_initial=*+2;;;;;;;<--note
                 jmp zp_code_actual_start
 zp_code_unrelocated_start:
                 .logical *-start
+                
+_:=[]
+_..=[$01de] ; 40 C4 = 261.6256 Hz
+_..=[$0192] ; 43 D#4 = 311.1270 Hz
+_..=[$013f] ; 47 G4 = 391.9954 Hz
+_..=[$010c] ; 50 A#4 = 466.1638 Hz
+                
+values=_
+values_lo: .byte (values&$0f)|$10
+values_hi: .byte values>>4
 
 ; max_colour: .byte MIN_MAX_COLOUR
 max_colour=max_colour_initial-start
@@ -128,9 +139,12 @@ dmax_colour=*+1;;;;;;;;;<--note
                 cmp #MAX_MAX_COLOUR+1
                 bcc max_max_ok
 max_max_breached:
-                lda timing
-                eor #15^31
+                ; C=1
+                rol timing
+                bcc +
+                lda #%00100111
                 sta timing
++
                 ldx #MAX_MAX_COLOUR
                 bra toggle_dmax_colour
 max_max_ok:
@@ -172,8 +186,12 @@ dest_updated:
                 pla             ;increment frame counter
                 tsx
                 txa
+                and #31
+
+                ; bottom 5 bits dictate temp; top 3 bits encode time
+                ; til tempo reset
 timing=*+1
-                and #15
+                and #%00100111
                 bne set_attenuation
                 
                 ;
@@ -184,9 +202,7 @@ timing=*+1
                 and #3
                 tax
 
-                ; occasionally one of the notes will be slightly out.
-                ; call it "character".
-                ;clc
+                clc
                 
 next_sn_latch_value=*+1;;;;;;;;;<--note
                 lda #%10010000;;<--note
@@ -249,16 +265,6 @@ pixels_end:
 sn_write_rts:
                 rts
 
-_:=[]
-_..=[$01de] ; 40 C4 = 261.6256 Hz
-_..=[$0192] ; 43 D#4 = 311.1270 Hz
-_..=[$013f] ; 47 G4 = 391.9954 Hz
-_..=[$010c] ; 50 A#4 = 466.1638 Hz
-                
-values=_
-values_lo: .byte (values&$0f)|$10
-values_hi: .byte values>>4
-                
                 .endlogical
                 .endsection
                 
