@@ -118,22 +118,40 @@ clean:
 ##########################################################################
 ##########################################################################
 
+.PHONY:_for_each
+_for_each:
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=wobble_colours"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=wobble_colours_scroll"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=alias_sines"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=2_scrollers"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=alien_daydream"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2023"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2023_2"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2023_3"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2023_4"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=nova_2023_1"
+
 .PHONY:dist
-dist: _SSD=./ssd/
+dist: export _SSD=./ssd/
 dist:
 	$(MAKE) clean
 	$(MAKE) build
 	$(SHELLCMD) mkdir "$(_SSD)"
-	$(SHELLCMD) copy-file "$(TMP)/wobble_colours.ssd" "$(_SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/wobble_colours_scroll.ssd" "$(_SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/alias_sines.ssd" "$(_SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/2_scrollers.ssd" "$(_SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/alien_daydream.ssd" "$(_SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023.ssd" "$(_SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023_2.ssd" "$(_SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023_3.ssd" "$(_SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/lovebyte_2023_4.ssd" "$(_SSD)/"
-	$(SHELLCMD) copy-file "$(TMP)/nova_2023_1.ssd" "$(_SSD)/"
+	$(MAKE) _for_each TARGET=_dist_copy
+
+.PHONY:_dist_copy
+_dist_copy:
+	$(SHELLCMD) copy-file "$(TMP)/$(NAME).ssd" "$(_SSD)/"
+
+.PHONY:urls
+urls: export COMMIT:=$(shell git log -1 '--format=%H')
+urls:
+	echo $(COMMIT)
+	$(MAKE) _for_each TARGET=_url
+
+.PHONY:_url
+_url:
+	@echo "https://bbc.godbolt.org/?&disc=https://raw.githubusercontent.com/tom-seddon/256_bytes/$(COMMIT)/ssd/$(NAME).ssd&autoboot&model=Master"
 
 ##########################################################################
 ##########################################################################
