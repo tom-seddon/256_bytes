@@ -164,10 +164,6 @@ update_dest_msb:
                 lda #$30
                 sta dest+1
 
-                ; fe00 was set to 8 above
-                lda #$c0
-                sta (fe01_constant)
-
                 ; switch between A#4 and kind-of E4
                 lda values_hi+3
                 eor #$13^$17
@@ -177,8 +173,14 @@ update_dest_msb:
                 sec
                 rol timing
                 bcc +
+                
                 lda #%00100111
                 sta timing
+                
+                ; fe00 was set to 8 above
+                lda #$c0
+                sta (fe01_constant)
+
 +
                 
 dest_updated:
@@ -194,7 +196,7 @@ dest_updated:
                 ; bottom 5 bits dictate temp; top 3 bits encode time
                 ; til tempo reset
 timing=*+1
-                and #%10011111
+                and #%00001111
                 bne set_attenuation
                 
                 ;
