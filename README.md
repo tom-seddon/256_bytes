@@ -23,6 +23,8 @@ Shift+BREAK. Worthwhile ones:
 - `build/wobble_colours.ssd` - wobbling text and scrolling colours (https://www.pouet.net/prod.php?which=88421)
 - `build/2_scrollers.ssd` - big horizontally scrolling text
 - `build/alien_daydream.ssd` - chunky patterns and "music" (https://www.pouet.net/prod.php?which=91130)
+- `build/lovebyte_2023_4.ssd` - scrolling pattern and tune (https://www.pouet.net/prod.php?which=93661)
+- `build/nova_2023_1.ssd` - waves and chimey music
 
 # licence
 

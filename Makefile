@@ -60,7 +60,7 @@ build_lovebyte_2023_4:
 
 .PHONY:build_nova_2023_1
 build_nova_2023_1:
-	$(MAKE) _assemble_and_ssd SRC=nova_2023_1 BBC=NOVA231 SSD=nova_2023_1 PRG2BBC_EXTRA=--execution-address
+	$(MAKE) _assemble_and_ssd SRC=nova_2023_1 BBC=SOTC SSD=nova_2023_1 PRG2BBC_EXTRA=--execution-address
 
 .PHONY:build_r22
 build_r22: _folders
