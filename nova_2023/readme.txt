@@ -5,15 +5,10 @@ By Tom Seddon of the Bitshifters Collective.
 Visit us at: https://bitshifters.github.io/
 
 Tiny (256 byte) intro for the BBC Master 128.
-Nova, June 2023
+Released at Nova, June 2023
 
-Doesn't actually have any sines. (But it is tiny! 1 out of 2 ain't
-bad.)
+We took some artistic licence when choosing the name. There aren't
+actually any sines here.
 
-Loops indefinitely.
-
-Should work on any stock BBC Master 128 computer.
-To catalogue the disc type: *CAT
-To check filesize type: *INFO SOTC
-Gives: <dir>.<filename> <load address> <exec address> <size in hex> <sector no>
-To run, press Shift+BREAK, or type: *RUN SOTC
+(Loops indefinitely. The video shows you everything there is to
+experience.)
