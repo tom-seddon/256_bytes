@@ -18,13 +18,20 @@ Prerequisites:
 To build, type `make`.
 
 The output is SSD files in `build/`. Put on a disk and run with
-Shift+BREAK. Worthwhile ones:
+Shift+BREAK.
 
-- `build/wobble_colours.ssd` - wobbling text and scrolling colours (https://www.pouet.net/prod.php?which=88421)
+## released demos
+
+- `build/wobble_colours.ssd` - Wobble Colours (https://www.pouet.net/prod.php?which=88421)
+- `build/alien_daydream.ssd` - Alien Daydream (https://www.pouet.net/prod.php?which=91130)
+- `build/lovebyte_2023_4.ssd` - March of the Triangles (https://www.pouet.net/prod.php?which=93661)
+- `build/nova_2023_1.ssd` - Sine of the Chimes (https://www.pouet.net/prod.php?which=94558)
+
+## unreleased demos
+
 - `build/2_scrollers.ssd` - big horizontally scrolling text
-- `build/alien_daydream.ssd` - chunky patterns and "music" (https://www.pouet.net/prod.php?which=91130)
-- `build/lovebyte_2023_4.ssd` - scrolling pattern and tune (https://www.pouet.net/prod.php?which=93661)
-- `build/nova_2023_1.ssd` - waves and chimey music
+
+(plus some prototypes of varying quality)
 
 # licence
 
@@ -36,4 +43,4 @@ GPL 3.0
 
 # example jsbeeb link
 
-https://bbc.godbolt.org/?&disc=https://tom-seddon.github.io/alien_daydream.ssd&autoboot&model=Master
+https://bbc.godbolt.org/?&disc=https://raw.githubusercontent.com/tom-seddon/256_bytes/07ac8a22e7e917a5683d4635d65935bbe0b07972/nova_2023/sotc.ssd&autoboot&model=Master
