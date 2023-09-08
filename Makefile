@@ -8,7 +8,7 @@ PYTHON?=py -3
 else
 TASS?=64tass
 EXOMIZER?=exomizer-3.1.1
-PYTHON?=python3.8
+PYTHON?=/usr/bin/python3
 endif
 
 BEEBASM?=beebasm
