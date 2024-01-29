@@ -65,7 +65,7 @@ build_nova_2023_1:
 
 .PHONY:build_lovebyte_2024_1
 build_lovebyte_2024_1:
-	$(MAKE) _assemble_and_ssd SRC=lovebyte_2024_1 BBC=LB24_1
+	$(MAKE) _assemble_and_ssd SRC=lovebyte_2024_1 BBC=LB24_1 SSD=lovebyte_2024_1
 
 .PHONY:build_r22
 build_r22: _folders
@@ -98,18 +98,23 @@ $(TMP)/StuntCarRacerTitleScreen.dat:StuntCarRacerTitleScreen.png
 # see _assemble
 # SSD=stem of SSD 
 .PHONY:_assemble_and_ssd
+_assemble_and_ssd: SRC=$(error must set SRC)
+_assemble_and_ssd: BBC=$(error must set BBC)
+_assemble_and_ssd: SSD=$(error must set SSD)
 _assemble_and_ssd:
 	$(MAKE) _assemble SRC=$(SRC) BBC=$(BBC)
 	$(MAKE) _ssd SSD=$(SSD) BBC=$(BBC)
 
 .PHONY:_ssd
-_ssd:
+_ssd: SSD=$(error must set SSD)
+_ssd: _folders
 	$(PYTHON) $(BEEB_BIN)/ssd_create.py -o "$(TMP)/$(SSD).ssd" -b "*/$$.$(BBC)" "$(DEST)/$$.$(BBC)"
 
 # SRC=stem of s65
 # BBC=stem of Beeb name, copied to $(DEST)
 .PHONY:_assemble
-_assemble:
+_assemble: SRC=$(error must set SRC)
+_assemble: _folders
 	$(TASSCMD) $(TASS_EXTRA) "$(SRC).s65" "-L$(TMP)/$(SRC).lst" "-l$(TMP)/$(SRC).sym" "-o$(TMP)/$(SRC).prg"
 	$(PYTHON) $(BEEB_BIN)/prg2bbc.py $(PRG2BBC_EXTRA) "$(TMP)/$(SRC).prg" "$(DEST)/$$.$(BBC)"
 
