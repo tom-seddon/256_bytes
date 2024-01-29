@@ -13,28 +13,31 @@
                 .section code
                 sei
 
-                lda #$ff
-                sta system_via.ddra
+                ldx #%11111111
+                stx system_via.ddra
 
 loop:
-t1_ptr=*+1
-                sbc $fe44
-                ror a
-                sbc (t1_ptr)
-                sta system_via.ora_no_handshake
-                
-
+                sty system_via.ora_no_handshake
 orb_ptr=*+1
                 stz system_via.orb
 
-                jsr delay
-                jsr delay
-
+                txa             ; 2 2
+                asl a           ; 2 4
+                bcs +           ; 2 6
+                eor #$cf
++
+                tax             ; 2 8
+                and #%10111111  ; 2 10
+                tay             ; 2 12
+                
                 lda #8
                 sta (orb_ptr)
 
-                bra loop
+                tya
+-
+                inc a
+                bne -
 
-delay:
-                rts
+                bra loop
                 .endsection
+                
