@@ -26,6 +26,7 @@ def main2(options):
 def main(argv):
     p=argparse.ArgumentParser()
 
+    p.add_argument('--all',action='store_true',help='''just print all notes''')
     p.add_argument('notes',metavar='NOTE',nargs='+',type=int,help='''piano key number''')
 
     main2(p.parse_args(argv))

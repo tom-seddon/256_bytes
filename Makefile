@@ -41,6 +41,7 @@ build: _folders
 	$(MAKE) build_lovebyte_2023_3
 	$(MAKE) build_lovebyte_2023_4
 	$(MAKE) build_nova_2023_1
+	$(MAKE) build_lovebyte_2024_1
 
 .PHONY:build_lovebyte_2023
 build_lovebyte_2023:
@@ -61,6 +62,10 @@ build_lovebyte_2023_4:
 .PHONY:build_nova_2023_1
 build_nova_2023_1:
 	$(MAKE) _assemble_and_ssd SRC=nova_2023_1 BBC=SOTC SSD=nova_2023_1 PRG2BBC_EXTRA=--execution-address
+
+.PHONY:build_lovebyte_2024_1
+build_lovebyte_2024_1:
+	$(MAKE) _assemble_and_ssd SRC=lovebyte_2024_1 BBC=LB24_1
 
 .PHONY:build_r22
 build_r22: _folders
@@ -185,7 +190,7 @@ _github.io:
 
 # for me, on my laptop
 .PHONY:tom_laptop
-tom_laptop: _TARGET=nova_2023_1
+tom_laptop: _TARGET=lovebyte_2024_1
 tom_laptop:
 	$(MAKE) build_$(_TARGET)
 	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=$(_TARGET)

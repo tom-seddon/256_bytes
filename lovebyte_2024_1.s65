@@ -1,0 +1,11 @@
+; 32 bytes
+
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+*=0
+                .dsection code
+
+                .section code
+                rts
+                .endsection
