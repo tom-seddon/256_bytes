@@ -42,6 +42,7 @@ build: _folders
 	$(MAKE) build_lovebyte_2023_4
 	$(MAKE) build_nova_2023_1
 	$(MAKE) build_lovebyte_2024_1
+	$(MAKE) build_lovebyte_2024_2
 
 .PHONY:build_lovebyte_2023
 build_lovebyte_2023:
@@ -66,6 +67,13 @@ build_nova_2023_1:
 .PHONY:build_lovebyte_2024_1
 build_lovebyte_2024_1:
 	$(MAKE) _assemble_and_ssd SRC=lovebyte_2024_1 BBC=LB24_1 SSD=lovebyte_2024_1
+
+.PHONY:build_lovebyte_2024_2
+build_lovebyte_2024_2:
+	$(MAKE) _assemble SRC=lovebyte_2024_2 BBC=LB24_2
+# Add in a cheeky *FX15, as for reasons of size this demo does not
+# silence the bootup beep.
+	$(PYTHON) $(BEEB_BIN)/ssd_create.py -o "$(TMP)/lovebyte_2024_2.ssd" -b "*FX15" -b "*/$$.LB24_2" "$(DEST)/$$.LB24_2"
 
 .PHONY:build_r22
 build_r22: _folders
@@ -140,6 +148,8 @@ _for_each:
 	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2023_3"
 	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2023_4"
 	@$(MAKE) --no-print-directory $(TARGET) "NAME=nova_2023_1"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2024_1"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2024_2"
 
 .PHONY:dist
 dist: export _SSD=./ssd/
@@ -171,22 +181,14 @@ _url:
 .PHONY:dist_and_upload
 dist_and_upload:
 	$(MAKE) dist
-	$(MAKE) _github.io NAME=wobble_colours.ssd
-	$(MAKE) _github.io NAME=wobble_colours_scroll.ssd
-	$(MAKE) _github.io NAME=alias_sines.ssd
-	$(MAKE) _github.io NAME=2_scrollers.ssd
-	$(MAKE) _github.io NAME=alien_daydream.ssd
-	$(MAKE) _github.io NAME=lovebyte_2023.ssd
-	$(MAKE) _github.io NAME=lovebyte_2023_2.ssd
-	$(MAKE) _github.io NAME=lovebyte_2023_3.ssd
-	$(MAKE) _github.io NAME=lovebyte_2023_4.ssd
-	$(MAKE) _github.io NAME=nova_2023_1.ssd
+	$(MAKE) _for_each TARGET=github.io
 	cd "$(GITHUB_IO)" && git push
 
 .PHONY:_github.io
+_github.io: _SSD=$(NAME).ssd
 _github.io:
 	cp "$(TMP)/$(NAME)" "$(GITHUB_IO)/"
-	cd "$(GITHUB_IO)" && git add "$(NAME)" && git commit --allow-empty -m "Add/update $(NAME)." "$(NAME)"
+	cd "$(GITHUB_IO)" && git add "$(_SSD)" && git commit --allow-empty -m "Add/update $(_SSD)." "$(_SSD)"
 # model=Master isn't always appropriate, but it's easy enough to remove...
 	@echo "https://bbc.godbolt.org/?&disc=https://tom-seddon.github.io/$(NAME)&autoboot&model=Master"
 
@@ -195,7 +197,7 @@ _github.io:
 
 # for me, on my laptop
 .PHONY:tom_laptop
-tom_laptop: _TARGET=lovebyte_2024_1
+tom_laptop: _TARGET=lovebyte_2024_2
 tom_laptop:
 	$(MAKE) build_$(_TARGET)
 	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=$(_TARGET)

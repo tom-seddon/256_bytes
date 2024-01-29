@@ -1,0 +1,46 @@
+; 32 bytes
+
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+*=0
+                .dsection code
+                .cwarn *>32,'32 byte overflow'
+                .cerror *>$90,'zp overflow'
+
+;-------------------------------------------------------------------------
+
+                .section code
+
+                sei
+
+counter=*+1
+                ldy #$ff
+                sty system_via.ddra
+
+loop:
+                sty system_via.ora_no_handshake
+orb_ptr=*+1
+                stz system_via.orb
+
+                txa             ; 2 2
+                asl a           ; 2 4
+                bcs +           ; 2 6
+                eor #$2b        ; ok
++
+                tax             ; 2 8
+                ora #%11100100  ; white noise
+                tay             ; 2 12
+                
+                lda #8
+                sta (orb_ptr)
+
+-
+                inc a
+                bne -
+                dec counter
+                bpl -
+
+                bra loop
+                .endsection
+                
