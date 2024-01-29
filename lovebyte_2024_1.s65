@@ -5,7 +5,36 @@
 
 *=0
                 .dsection code
+                .cwarn *>32,'32 byte overflow'
+                .cerror *>$90,'zp overflow'
+
+;-------------------------------------------------------------------------
 
                 .section code
+                sei
+
+                lda #$ff
+                sta system_via.ddra
+
+loop:
+t1_ptr=*+1
+                sbc $fe44
+                ror a
+                sbc (t1_ptr)
+                sta system_via.ora_no_handshake
+                
+
+orb_ptr=*+1
+                stz system_via.orb
+
+                jsr delay
+                jsr delay
+
+                lda #8
+                sta (orb_ptr)
+
+                bra loop
+
+delay:
                 rts
                 .endsection
