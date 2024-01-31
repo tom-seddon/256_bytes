@@ -1,0 +1,38 @@
+; 32 bytes
+
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+*=0
+                .dsection code
+                .cwarn *>32,'32 byte overflow'
+                .cerror *>$90,'zp overflow'
+
+;-------------------------------------------------------------------------
+
+
+                .section code
+                ldy #1
+crtc_ptr=*+1
+                sty $fe00
+loop2:
+                lda #32
+                sta (crtc_ptr),y
+loop:
+                asl a
+                bcc +
+noise: eor #$1d
++
+write: sta $7c00,x
+                inc write+2
+                bpl loop
+                lsr write+2
+                ; ; $fe58 is T2 latch L. Quite safe to store 32 there
+                ; ldy #$58
+                ; sty write+2
+                inx
+                bne loop
+                inc noise+1
+                lda noise+1
+                bra loop
+                 .endsection code

@@ -1,1 +1,2 @@
-cmd /c gmake
+cmd /c gmake --no-print-directory %*
+
