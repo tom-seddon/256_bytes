@@ -10,29 +10,69 @@
 
 ;-------------------------------------------------------------------------
 
-
+; Adequate
+                
                 .section code
-                ldy #1
-crtc_ptr=*+1
-                sty $fe00
-loop2:
-                lda #32
-                sta (crtc_ptr),y
 loop:
-                asl a
-                bcc +
-noise: eor #$1d
-+
-write: sta $7c00,x
+ld: lda #0
+write: sta $4000,x
                 inc write+2
-                bpl loop
+                bpl write
                 lsr write+2
-                ; ; $fe58 is T2 latch L. Quite safe to store 32 there
-                ; ldy #$58
-                ; sty write+2
-                inx
+                txa
+                sec
+add: adc #0
+                tax
                 bne loop
-                inc noise+1
-                lda noise+1
+                inc add+1
+                lda ld+1
+                inc a
+                rol a           ; good
+                eor $295
+                sta ld+1
                 bra loop
-                 .endsection code
+                .endsection
+
+
+;-------------------------------------------------------------------------
+
+; Hmm
+                
+;                 .section code
+; loop:
+; ld: lda #0
+; write: sta $4000,x
+;                 txa
+;                 sec
+; add: adc #0
+;                 tax
+;                 bcc loop
+;                 inc write+2
+;                 bpl loop
+;                 lsr write+2
+;                 inc ld+1
+;                 inc add+1
+;                 bra loop
+;                 .endsection
+
+;-------------------------------------------------------------------------
+
+; Tolerable MODE 4 effort
+                
+;                 .section code
+; loop:
+;                 rol a
+;                 bcc +
+; noise: eor #0
+; +
+; write: sta $7c00,x
+;                 inx
+;                 bne loop
+;                 inc write+2
+;                 bpl loop
+;                 lsr write+2
+;                 inc noise+1
+;                 lda noise+1
+;                 ;tax
+;                 bra loop
+;                  .endsection code

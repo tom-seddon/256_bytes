@@ -79,7 +79,7 @@ build_lovebyte_2024_2:
 .PHONY:build_lovebyte_2024_3
 build_lovebyte_2024_3:
 	$(MAKE) _assemble SRC=lovebyte_2024_3 BBC=LB24_3
-	$(PYTHON) $(BEEB_BIN)/ssd_create.py -o "$(TMP)/lovebyte_2024_3.ssd" -b "MODE5" -b "*/$$.LB24_3" "$(DEST)/$$.LB24_3"
+	$(PYTHON) $(BEEB_BIN)/ssd_create.py -o "$(TMP)/lovebyte_2024_3.ssd" -b "MODE4" -b "*/$$.LB24_3" "$(DEST)/$$.LB24_3"
 
 .PHONY:build_r22
 build_r22: _folders
