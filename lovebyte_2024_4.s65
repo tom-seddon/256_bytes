@@ -1,0 +1,59 @@
+; 32 bytes
+
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+*=0
+                .dsection code
+                .cwarn *>64,'64 byte overflow'
+                .cerror *>$90,'zp overflow'
+
+;-------------------------------------------------------------------------
+
+; Adequate
+                
+                .section code
+loop:
+ld: lda #30
+write: sta $4000,x
+                inc write+2
+                bpl write
+                lsr write+2
+                txa
+                sec
+add: adc #0
+                tax
+                bne loop
+                inc add+1
+                lda ld+1
+                inc a
+                rol a           ; good
+                inc volume+0
+                eor $295
+                sta ld+1
+                and #$3f
+                sta pitch+0
+                and #1          ; 0/1
+                inc a           ; 1/2
+                sta sound+0
+                ;eor #1^2
+                sta duration+0
+                phx
+                ldx #<sound
+                ldy #>sound
+                lda #7
+                jsr osword
+                plx
+                bra loop
+sound:
+                .sint 1
+volume:
+                .sint -15
+pitch:
+                .sint 0
+duration:
+                .sint 2
+                
+                .endsection
+
+;-------------------------------------------------------------------------

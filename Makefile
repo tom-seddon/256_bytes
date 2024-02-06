@@ -44,6 +44,7 @@ build: _folders
 	$(MAKE) build_lovebyte_2024_1
 	$(MAKE) build_lovebyte_2024_2
 	$(MAKE) build_lovebyte_2024_3
+	$(MAKE) build_lovebyte_2024_4
 
 .PHONY:build_lovebyte_2023
 build_lovebyte_2023:
@@ -80,6 +81,11 @@ build_lovebyte_2024_2:
 build_lovebyte_2024_3:
 	$(MAKE) _assemble SRC=lovebyte_2024_3 BBC=LB24_3
 	$(PYTHON) $(BEEB_BIN)/ssd_create.py -o "$(TMP)/lovebyte_2024_3.ssd" -b "MODE4" -b "*/$$.LB24_3" "$(DEST)/$$.LB24_3"
+
+.PHONY:build_lovebyte_2024_4
+build_lovebyte_2024_4:
+	$(MAKE) _assemble SRC=lovebyte_2024_4 BBC=LB24_4
+	$(PYTHON) $(BEEB_BIN)/ssd_create.py -o "$(TMP)/lovebyte_2024_4.ssd" -b "MODE4" -b "*/$$.LB24_4" "$(DEST)/$$.LB24_4"
 
 .PHONY:build_r22
 build_r22: _folders
@@ -157,6 +163,7 @@ _for_each:
 	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2024_1"
 	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2024_2"
 	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2024_3"
+	@$(MAKE) --no-print-directory $(TARGET) "NAME=lovebyte_2024_4"
 
 .PHONY:dist
 dist: export _SSD=./ssd/
@@ -204,7 +211,7 @@ _github.io:
 
 # for me, on my laptop
 .PHONY:tom_laptop
-tom_laptop: _TARGET=lovebyte_2024_3
+tom_laptop: _TARGET=lovebyte_2024_4
 tom_laptop:
 	$(MAKE) build_$(_TARGET)
 	$(MAKE) b2 'CONFIG=Master 128 (MOS 3.20)' SSD=$(_TARGET)
