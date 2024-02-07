@@ -1,0 +1,105 @@
+; 128 bytes
+
+                .include "submodules/beeb/include/beeb.s65"
+                .cpu '65c02'
+
+*=0
+                .dsection code
+                .cwarn *>128,'128 byte overflow'
+                .cerror *>$90,'zp overflow'
+
+;-------------------------------------------------------------------------
+
+; Adequate
+                
+                .section code
+main_loop:
+                ldx #1
+                lda #32
+                tay
+                jsr set_crtc
+                ; adjust screen addr
+                clc
+                adc screen_addr+0
+                sta screen_addr+0
+                bcc got_screen_addr
+                lda screen_addr+1
+                inc a
+                bpl got_screen_addr_msb
+                sbc #4
+got_screen_addr_msb:
+                sta screen_addr+1
+got_screen_addr:
+
+                ; fill line
+                dey
+line_loop:
+                tya
+jsr_routine: jsr routine1
+                lsr a
+                lsr a
+                lsr a
+                lda #0
+                sbc #0
+screen_addr=*+1
+                sta $7c00,y
+                dey
+                bpl line_loop
+                inc yc
+                bpl got_routine
+                stz yc
+                ; adjust routine
+                clc
+                lda jsr_routine+1
+                adc #4
+                cmp #routine3+1
+                bcc +
+                lda #routine1
++
+                sta jsr_routine+1
+got_routine:
+
+                ; next frame
+                lda #19
+                jsr osbyte
+                jsr set_crtc_addr
+                ;jsr osrdch  
+                bra main_loop
+                
+set_crtc_addr:
+                ldx #13
+                lda screen_addr+0
+                jsr set_crtc
+                lda screen_addr+1
+                eor #$7c^$28
+set_crtc:
+                stx $fe00
+                sta $fe01
+                dex
+                rts
+
+routine1:
+                ; fat grid
+                and yc          ; 2
+                rts             ; 3
+yc:
+                .byte 0
+routine2:
+                
+                ; chequerboard
+                eor yc          ; 2
+                lsr a           ; 3
+                rts             ; 4
+
+routine3:
+                ; diagonal lines
+                sec             ; 1
+                sbc yc          ; 3
+                lsr a           ; 4
+                rts             ; 5
+
+                .cerror routine2-routine1!=4
+                .cerror routine3-routine2!=4
+                .endsection
+
+;-------------------------------------------------------------------------
