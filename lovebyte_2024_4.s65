@@ -13,6 +13,8 @@
 ; Adequate
                 
                 .section code
+loop2:
+                plx
 loop:
 ld: lda #30
 write: sta $4000,x
@@ -22,8 +24,8 @@ write: sta $4000,x
                 txa
                 sec
 add: adc #0
-                tax
-                bne loop
+                pha
+                bne loop2
                 inc add+1
                 lda ld+1
                 inc a
@@ -38,13 +40,11 @@ add: adc #0
                 sta sound+0
                 ;eor #1^2
                 sta duration+0
-                phx
                 ldx #<sound
                 ldy #>sound
                 lda #7
                 jsr osword
-                plx
-                bra loop
+                bra loop2
 sound:
                 .sint 1
 volume:
