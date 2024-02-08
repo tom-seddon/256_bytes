@@ -14,27 +14,11 @@
                 
                 .section code
 main_loop:
-                ldx #1
-                lda #32
-                tay
-                jsr set_crtc
-                ; adjust screen addr
-                clc
-                adc screen_addr+0
-                sta screen_addr+0
-                bcc got_screen_addr
-                lda screen_addr+1
-                inc a
-                bpl got_screen_addr_msb
-                sbc #4
-got_screen_addr_msb:
-                sta screen_addr+1
-got_screen_addr:
-
                 ; fill line
-                dey
+                ldy #31
 line_loop:
                 tya
+                sec
 jsr_routine: jsr routine1
                 lsr a
                 lsr a
@@ -52,18 +36,34 @@ screen_addr=*+1
                 clc
                 lda jsr_routine+1
                 adc #4
-                cmp #routine3+1
-                bcc +
+                bpl got_routine_lsb
                 lda #routine1
-+
+got_routine_lsb:
                 sta jsr_routine+1
 got_routine:
+                ldx #1
+                lda #32
+                jsr set_crtc
+
+                ; adjust screen addr
+                clc
+                adc screen_addr+0
+                sta screen_addr+0
+                bcc got_screen_addr
+                lda screen_addr+1
+                inc a
+                bpl got_screen_addr_msb
+                sbc #4
+got_screen_addr_msb:
+                sta screen_addr+1
+got_screen_addr:
 
                 ; next frame
+                jsr set_crtc_addr
+                ;jsr osrdch
                 lda #19
                 jsr osbyte
-                jsr set_crtc_addr
-                ;jsr osrdch  
+
                 bra main_loop
                 
 set_crtc_addr:
@@ -77,6 +77,12 @@ set_crtc:
                 sta $fe01
                 dex
                 rts
+
+filler_begin:
+                .fill 128-(routines_end-routine1)-*,0
+filler_size=*-filler_begin
+                .cwarn filler_size>0,format('Total size: %d',128-filler_size)
+                
 
 routine1:
                 ; fat grid
@@ -93,13 +99,15 @@ routine2:
 
 routine3:
                 ; diagonal lines
-                sec             ; 1
-                sbc yc          ; 3
-                lsr a           ; 4
-                rts             ; 5
+                sbc yc          ; 2
+                lsr a           ; 3
+                rts             ; 4
+
+routines_end:
 
                 .cerror routine2-routine1!=4
                 .cerror routine3-routine2!=4
+                .cerror routines_end-routine3!=4
                 .endsection
 
 ;-------------------------------------------------------------------------
