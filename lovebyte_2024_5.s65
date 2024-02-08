@@ -34,7 +34,7 @@ screen_addr=*+1
                 asl yc          ; $80->$00
                 ; adjust routine
                 lda jsr_routine+1
-                adc #3          ; +4, C=0
+                adc #3          ; +4; C=0
                 bpl got_routine_lsb
                 lda #routine1
 got_routine_lsb:
@@ -55,8 +55,23 @@ got_routine:
                 sbc #4
 got_screen_addr_msb:
                 sta screen_addr+1
-got_screen_addr:
 
+                ; sound                
+                ldx #<sound_data
+                ldy #>sound_data
+                lda #7
+                jsr osword
+
+                lda sound_data+4
+                asl a
+                bcc +
+                eor #$1d        ; not bad
+                ;eor #$2b
++
+                sta sound_data+4
+
+got_screen_addr:
+                
                 ; next frame
                 jsr set_crtc_addr
                 ;jsr osrdch
@@ -77,6 +92,12 @@ set_crtc:
                 dex
                 rts
 
+sound_data:
+                .sint 0
+                .sint -15
+                .sint 1
+                .sint 1
+
 filler_begin:
                 .fill 128-(routines_end-routine1)-*,0
 filler_size=*-filler_begin
@@ -88,7 +109,7 @@ routine1:
                 and yc          ; 2
                 rts             ; 3
 yc:
-                .byte 0
+                .byte 0         ; 4
 routine2:
                 
                 ; chequerboard
