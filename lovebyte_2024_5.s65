@@ -73,36 +73,34 @@ got_screen_addr_msb:
 got_screen_addr:
                 
                 ; next frame
-                jsr set_crtc_addr
-                ;jsr osrdch
-                lda #19
-                jsr osbyte
-
-                bra main_loop
-                
-set_crtc_addr:
                 ldx #13
                 lda screen_addr+0
                 jsr set_crtc
                 lda screen_addr+1
                 eor #$7c^$28
+                jsr set_crtc
+
+                lda #19
+                jsr osbyte
+
+                bra main_loop
+                
+filler_begin:
+                .fill 128-(routines_end-post_filler_begin)-*,0
+filler_size=*-filler_begin
+                .cwarn filler_size>0,format('Total size: %d',128-filler_size)
+
+post_filler_begin:
 set_crtc:
                 stx $fe00
                 sta $fe01
                 dex
-                rts
-
 sound_data:
-                .sint 0
+                rts             ; channel $0060 = channel 0
+                .byte 0
                 .sint -15
                 .sint 1
-                .sint 1
-
-filler_begin:
-                .fill 128-(routines_end-routine1)-*,0
-filler_size=*-filler_begin
-                .cwarn filler_size>0,format('Total size: %d',128-filler_size)
-                
+                .byte 1         ; duration is a byte
 
 routine1:
                 ; fat grid
