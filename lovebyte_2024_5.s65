@@ -31,11 +31,10 @@ screen_addr=*+1
                 bpl line_loop
                 inc yc
                 bpl got_routine
-                stz yc
+                asl yc          ; $80->$00
                 ; adjust routine
-                clc
                 lda jsr_routine+1
-                adc #4
+                adc #3          ; +4, C=0
                 bpl got_routine_lsb
                 lda #routine1
 got_routine_lsb:
