@@ -26,6 +26,10 @@ Shift+BREAK.
 - `build/alien_daydream.ssd` - Alien Daydream (https://www.pouet.net/prod.php?which=91130)
 - `build/lovebyte_2023_4.ssd` - March of the Triangles (https://www.pouet.net/prod.php?which=93661)
 - `build/nova_2023_1.ssd` - Sine of the Chimes (https://www.pouet.net/prod.php?which=94558)
+- `beeb/0/$.16B#2e4` - Untitled 16 (no disk image - tokenized BASIC)
+- `build/lovebyte_2024_3.ssd` - Untitled 32
+- `build/lovebyte_2024_4.ssd` - Untitled 64
+- `build/lovebyte_2024_5.ssd` - Untitled 128
 
 ## unreleased demos
 

@@ -1,0 +1,17 @@
+Untitled 128
+https://github.com/tom-seddon/256_bytes/
+
+For the BBC Master 128. 128 bytes.
+Lovebyte, Feb 2024
+
+By Tom Seddon of the Bitshifters Collective.
+
+Visit us at: https://bitshifters.github.io/
+
+Should work on any stock BBC Master 128 computer.
+To catalogue the disc type: *CAT
+To check filesize type: *INFO LB24_5
+Gives: <dir>.<filename> <load address> <exec address> <size in hex> <sector no>
+To run, press Shift+BREAK, or type: *RUN LB24_5
+
+Runs in mode 4, 5 or 7.

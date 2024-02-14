@@ -1,0 +1,45 @@
+Untitled 16
+https://github.com/tom-seddon/256_bytes/
+
+For the BBC Master 128. 16 bytes.
+Lovebyte, Feb 2024
+
+By Tom Seddon of the Bitshifters Collective.
+
+Visit us at: https://bitshifters.github.io/
+
+Should work on any stock BBC Master 128 computer.
+
+Supplied as source. To run, press Shift+BREAK or type CHAIN"16B.4"
+from the BASIC prompt.
+
+The code is displayed on screen once assembled:
+
+0070  AD 45 FE   lda $fe45
+0073  4A         lsr a
+0074  45 95 02   eor $0295
+0077  72 71      adc ($71)
+0079  29 07      and $$07
+007b  8d 21 fe   sta $fe21
+007e  80 f0      bra $0070
+
+Runs out of the box: just type CALL &70 to execute. But you have other
+options too!
+
+For stationary bars:
+
+   *TV 0 0
+   MODE 1
+   CALL &70
+
+For scrolling solid bars:
+
+  *TV 0 1
+  MODE 2
+  CALL &70
+
+For scrolling vertical lines:
+
+  *TV 0 1
+  MODE 0
+  CALL &70
